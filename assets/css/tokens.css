@@ -1,0 +1,59 @@
+/* ТАМЫР — design tokens. Do not scatter raw hex/px outside this file. */
+:root {
+  /* surface */
+  --paper: #F1F4F2;
+  --paper-lift: #FFFFFF;
+  --ink: #101A16;
+  --ink-soft: #5A6B63;
+  --hairline: #DCE3DF;
+
+  /* signal */
+  --root: #0B6B54;
+  --root-glow: #14A47F;
+  --gap: #B8402F;
+  --steppe: #D9A04A;
+  --void: #0C1512;
+
+  /* derived */
+  --root-10: rgba(11, 107, 84, .10);
+  --root-18: rgba(11, 107, 84, .18);
+  --gap-10: rgba(184, 64, 47, .10);
+  --gap-18: rgba(184, 64, 47, .18);
+  --steppe-10: rgba(217, 160, 74, .10);
+  --steppe-18: rgba(217, 160, 74, .18);
+  --ink-06: rgba(16, 26, 22, .06);
+  --ink-12: rgba(16, 26, 22, .12);
+
+  /* type */
+  --f-display: 'Onest', 'Segoe UI', sans-serif;
+  --f-body: 'Inter', 'Segoe UI', sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --t-13: 13px; --t-15: 15px; --t-18: 18px; --t-24: 24px;
+  --t-34: 34px; --t-52: 52px; --t-76: 76px;
+
+  /* shape */
+  --r-card: 10px;
+  --r-btn: 8px;
+  --r-pill: 999px;
+
+  /* elevation */
+  --shadow-1: 0 1px 2px rgba(16, 26, 22, .06);
+  --shadow-2: 0 1px 2px rgba(16, 26, 22, .06), 0 4px 12px rgba(16, 26, 22, .05);
+
+  /* grid */
+  --unit: 4px;
+  --col-max: 1120px;
+  --rail-collapsed: 68px;
+  --rail-expanded: 240px;
+
+  /* motion */
+  --ease-graph: cubic-bezier(.2, .8, .2, 1);
+  --dur-fast: 120ms;
+  --dur-med: 220ms;
+  --dur-slow: 420ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur-med: 0ms; --dur-slow: 0ms; }
+}

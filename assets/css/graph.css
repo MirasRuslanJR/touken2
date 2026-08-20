@@ -1,0 +1,96 @@
+.graph-wrap {
+  position: relative;
+  background: var(--void);
+  border-radius: var(--r-card);
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  touch-action: none;
+  cursor: grab;
+}
+.graph-wrap:active { cursor: grabbing; }
+.graph-wrap.compact { aspect-ratio: 4 / 3; }
+
+.graph-wrap svg { width: 100%; height: 100%; display: block; }
+
+.graph-edge {
+  stroke: rgba(220, 227, 223, .14);
+  stroke-width: 1.5;
+  fill: none;
+  transition: stroke var(--dur-med) var(--ease-graph), stroke-width var(--dur-med);
+}
+.graph-edge.lit { stroke: var(--root-glow); stroke-width: 2.5; }
+.graph-edge.lit-gap { stroke: var(--gap); stroke-width: 2; opacity: .7; }
+
+.graph-node-group {
+  cursor: pointer;
+  opacity: 0;
+  transform-origin: center;
+  animation: node-in var(--dur-slow) var(--ease-graph) forwards;
+}
+@keyframes node-in { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
+
+.graph-node {
+  fill: #16221D;
+  stroke: rgba(220, 227, 223, .25);
+  stroke-width: 1.5;
+  transition: fill 480ms var(--ease-graph), stroke 480ms var(--ease-graph), r var(--dur-med) var(--ease-graph);
+}
+.graph-node.gap { fill: rgba(184, 64, 47, .22); stroke: var(--gap); }
+.graph-node.learning { fill: rgba(217, 160, 74, .2); stroke: var(--steppe); }
+.graph-node.mastered { fill: rgba(11, 107, 84, .28); stroke: var(--root-glow); }
+.graph-node.focus-ring { stroke-width: 3; }
+.graph-node-group:hover .graph-node,
+.graph-node-group.selected .graph-node { stroke-width: 3; }
+.graph-node-group.selected .graph-node { fill-opacity: .5; }
+
+.graph-node-glow {
+  fill: none; stroke: var(--root-glow); stroke-width: 1;
+  opacity: 0; pointer-events: none;
+}
+.graph-node-group.pulse .graph-node-glow { animation: node-pulse 1200ms var(--ease-graph); }
+@keyframes node-pulse {
+  0% { opacity: .9; r: 14; stroke-width: 6; }
+  100% { opacity: 0; r: 34; stroke-width: 0; }
+}
+
+.graph-label {
+  fill: #C7D2CC; font-family: var(--f-body); font-size: 9px; font-weight: 500;
+  text-anchor: middle; pointer-events: none; user-select: none;
+}
+.graph-code {
+  fill: #7C8C84; font-family: var(--f-mono); font-size: 8px;
+  text-anchor: middle; pointer-events: none; user-select: none;
+}
+
+.graph-root-arrow {
+  stroke: var(--gap); stroke-width: 2; fill: none; stroke-dasharray: 4 3;
+  animation: dash-march 900ms linear infinite;
+  opacity: 0;
+}
+.graph-root-arrow.show { opacity: 1; }
+@keyframes dash-march { to { stroke-dashoffset: -14; } }
+
+.graph-controls {
+  position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.graph-controls button {
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(220,227,223,.2);
+  background: rgba(255,255,255,.06); color: #E7ECE9; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; backdrop-filter: blur(4px);
+}
+.graph-controls button:hover { background: rgba(255,255,255,.14); }
+
+.graph-legend {
+  position: absolute; left: 12px; bottom: 12px; display: flex; gap: 12px;
+  font-size: 11px; color: #C7D2CC; background: rgba(12,21,18,.5); padding: 6px 10px; border-radius: var(--r-pill);
+  backdrop-filter: blur(4px);
+}
+.graph-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.graph-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-node-group { animation: none; opacity: 1; }
+  .graph-root-arrow { animation: none; }
+  .graph-node-group.pulse .graph-node-glow { animation: none; }
+}

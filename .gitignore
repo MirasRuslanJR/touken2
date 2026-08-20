@@ -1,0 +1,5 @@
+# config.js holds real credentials (Supabase URL/anon key, Gemini key) — must
+# never be committed to the public hackathon repo. Commit config.example.js instead.
+config.js
+.DS_Store
+*.log
