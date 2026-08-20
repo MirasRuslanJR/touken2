@@ -10,12 +10,20 @@
 .rail:hover, .rail.expanded { width: var(--rail-expanded); }
 .rail-brand { display: flex; align-items: center; gap: 12px; padding: 0 22px 20px; white-space: nowrap; }
 .rail-brand .mark { width: 24px; height: 24px; flex-shrink: 0; }
-.rail-brand strong { font-family: var(--f-display); font-weight: 800; font-size: var(--t-18); }
+.rail-brand strong {
+  font-family: var(--f-display); font-weight: 800; font-size: var(--t-18);
+  opacity: 0; transition: opacity var(--dur-fast) linear;
+}
+.rail:hover .rail-brand strong, .rail.expanded .rail-brand strong { opacity: 1; }
 .rail nav { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; flex: 1; }
 .rail a {
   display: flex; align-items: center; gap: 14px; height: 42px; padding: 0 12px; border-radius: var(--r-btn);
   color: var(--ink-soft); text-decoration: none; white-space: nowrap; font-weight: 600; font-size: var(--t-15);
 }
+.rail a span {
+  opacity: 0; transition: opacity var(--dur-fast) linear;
+}
+.rail:hover a span, .rail.expanded a span { opacity: 1; }
 .rail a:hover { background: var(--paper); color: var(--ink); }
 .rail a.active { background: var(--root-10); color: var(--root); }
 .rail-foot { padding: 10px; border-top: 1px solid var(--hairline); margin-top: auto; }
@@ -117,5 +125,6 @@
   .rail-brand, .rail-foot { display: none; }
   .rail nav { flex-direction: row; justify-content: space-around; padding: 6px; width: 100%; }
   .rail a { flex-direction: column; height: 48px; gap: 2px; font-size: 10px; padding: 0 6px; }
+  .rail a span { opacity: 1; }
   #app-shell { padding-bottom: 60px; }
 }

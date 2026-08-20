@@ -39,7 +39,7 @@ export async function renderDashboard(root) {
     <div class="stat-row" style="margin-bottom:24px">
       <div class="card stat"><div class="num mono">${overall}%</div><div class="lbl">общее освоение</div></div>
       <div class="card stat"><div class="num mono">${streak}</div><div class="lbl">дней подряд</div></div>
-      <div class="card stat"><div class="num mono">${daysLeft ?? '—'}</div><div class="lbl">${goal?.title || 'до цели'}</div></div>
+      <div class="card stat"><div class="num mono">${daysLeft ?? '—'}</div><div class="lbl">${daysLeft != null ? 'дней · ' : ''}${goal?.title || 'до цели'}</div></div>
       <div class="card stat"><div class="num mono">${attempts.length}</div><div class="lbl">попыток за месяц</div></div>
     </div>
     <div class="grid-2" style="align-items:start">
