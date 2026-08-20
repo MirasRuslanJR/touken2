@@ -116,161 +116,161 @@ on conflict (prerequisite_node_id, dependent_node_id) do nothing;
 -- ---- ALG-9-01 Квадратные уравнения (8) ----
 insert into tasks (node_id, difficulty, type, prompt, options, answer, solution)
 select id,1,'choice','Сколько корней имеет уравнение x² - 4 = 0?',
- '["Один","Два","Ни одного","Бесконечно много"]','Два',
+ '["Один","Два","Ни одного","Бесконечно много"]'::jsonb,'Два',
  'x² = 4 → x = ±2. Два корня: 2 и −2.'
 from nodes where code='ALG-9-01' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,1,'number','Найди корень: x² = 9 (укажи положительный корень).',null,'3','x² = 9 → x = ±3, положительный корень — 3.'
+union all select id,1,'number','Найди корень: x² = 9 (укажи положительный корень).',null::jsonb,'3','x² = 9 → x = ±3, положительный корень — 3.'
 from nodes where code='ALG-9-01' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,2,'number','Реши: x² - 5x + 6 = 0. Введи меньший корень.',null,'2','Дискриминант D = 25-24=1. x = (5±1)/2 → x1=2, x2=3.'
+union all select id,2,'number','Реши: x² - 5x + 6 = 0. Введи меньший корень.',null::jsonb,'2','Дискриминант D = 25-24=1. x = (5±1)/2 → x1=2, x2=3.'
 from nodes where code='ALG-9-01' and subject_id='a0000000-0000-0000-0000-000000000001'
 union all select id,2,'choice','Чему равен дискриминант уравнения x² + 2x - 3 = 0?',
- '["4","16","-8","8"]','16','D = b²-4ac = 4 - 4·1·(-3) = 4+12 = 16.'
+ '["4","16","-8","8"]'::jsonb,'16','D = b²-4ac = 4 - 4·1·(-3) = 4+12 = 16.'
 from nodes where code='ALG-9-01' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,3,'number','Реши уравнение 2x² - 8 = 0. Введи положительный корень.',null,'2','x² = 4 → x = ±2.'
+union all select id,3,'number','Реши уравнение 2x² - 8 = 0. Введи положительный корень.',null::jsonb,'2','x² = 4 → x = ±2.'
 from nodes where code='ALG-9-01' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,3,'short','Реши: x² - 6x + 9 = 0. Сколько различных корней у уравнения?',null,'1','D = 36-36 = 0, один корень x = 3 (кратности 2).'
+union all select id,3,'short','Реши: x² - 6x + 9 = 0. Сколько различных корней у уравнения?',null::jsonb,'1','D = 36-36 = 0, один корень x = 3 (кратности 2).'
 from nodes where code='ALG-9-01' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,4,'number','Реши: 3x² - 5x - 2 = 0. Введи больший корень.',null,'2','D=25+24=49. x=(5±7)/6 → x1=2, x2=-1/3.'
+union all select id,4,'number','Реши: 3x² - 5x - 2 = 0. Введи больший корень.',null::jsonb,'2','D=25+24=49. x=(5±7)/6 → x1=2, x2=-1/3.'
 from nodes where code='ALG-9-01' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,5,'short','При каком значении k уравнение x² - 4x + k = 0 имеет ровно один корень?',null,'4','Один корень при D=0: 16-4k=0 → k=4.'
+union all select id,5,'short','При каком значении k уравнение x² - 4x + k = 0 имеет ровно один корень?',null::jsonb,'4','Один корень при D=0: 16-4k=0 → k=4.'
 from nodes where code='ALG-9-01' and subject_id='a0000000-0000-0000-0000-000000000001';
 
 -- ---- ALG-9-03 Квадратичная функция (8) ----
 insert into tasks (node_id, difficulty, type, prompt, options, answer, solution)
 select id,1,'choice','Куда направлены ветви параболы y = 2x² - 3?',
- '["Вверх","Вниз","Влево","Вправо"]','Вверх','Коэффициент при x² положительный (2>0), значит ветви вверх.'
+ '["Вверх","Вниз","Влево","Вправо"]'::jsonb,'Вверх','Коэффициент при x² положительный (2>0), значит ветви вверх.'
 from nodes where code='ALG-9-03' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,1,'number','Найди значение y при x=0 для функции y = x² + 5.',null,'5','y(0) = 0 + 5 = 5.'
+union all select id,1,'number','Найди значение y при x=0 для функции y = x² + 5.',null::jsonb,'5','y(0) = 0 + 5 = 5.'
 from nodes where code='ALG-9-03' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,2,'number','Найди абсциссу вершины параболы y = x² - 4x + 1.',null,'2','x0 = -b/2a = 4/2 = 2.'
+union all select id,2,'number','Найди абсциссу вершины параболы y = x² - 4x + 1.',null::jsonb,'2','x0 = -b/2a = 4/2 = 2.'
 from nodes where code='ALG-9-03' and subject_id='a0000000-0000-0000-0000-000000000001'
 union all select id,2,'choice','Какая функция задаёт параболу с ветвями вниз?',
- '["y=3x²+1","y=-2x²+4","y=x²","y=5x²-1"]','y=-2x²+4','Коэффициент при x² отрицательный (-2), ветви вниз.'
+ '["y=3x²+1","y=-2x²+4","y=x²","y=5x²-1"]'::jsonb,'y=-2x²+4','Коэффициент при x² отрицательный (-2), ветви вниз.'
 from nodes where code='ALG-9-03' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,3,'number','Найди ординату вершины параболы y = x² - 2x - 3.',null,'-4','x0=1, y(1)=1-2-3=-4.'
+union all select id,3,'number','Найди ординату вершины параболы y = x² - 2x - 3.',null::jsonb,'-4','x0=1, y(1)=1-2-3=-4.'
 from nodes where code='ALG-9-03' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,3,'short','Сколько точек пересечения с осью Ox у параболы y = x² + 1?',null,'0','D=0-4<0, действительных корней нет, парабола не пересекает Ox.'
+union all select id,3,'short','Сколько точек пересечения с осью Ox у параболы y = x² + 1?',null::jsonb,'0','D=0-4<0, действительных корней нет, парабола не пересекает Ox.'
 from nodes where code='ALG-9-03' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,4,'number','При каком x парабола y = -x² + 6x - 5 достигает максимума?',null,'3','x0 = -b/2a = -6/(-2) = 3.'
+union all select id,4,'number','При каком x парабола y = -x² + 6x - 5 достигает максимума?',null::jsonb,'3','x0 = -b/2a = -6/(-2) = 3.'
 from nodes where code='ALG-9-03' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,5,'short','Найди наибольшее значение функции y = -2x² + 8x - 3.',null,'5','x0=2, y(2)=-8+16-3=5 — максимум функции.'
+union all select id,5,'short','Найди наибольшее значение функции y = -2x² + 8x - 3.',null::jsonb,'5','x0=2, y(2)=-8+16-3=5 — максимум функции.'
 from nodes where code='ALG-9-03' and subject_id='a0000000-0000-0000-0000-000000000001';
 
 -- ---- ALG-9-04 Показательные выражения (8) — намеренно связана с ALG-7-05 в сценарии рентгена ----
 insert into tasks (node_id, difficulty, type, prompt, options, answer, solution)
-select id,1,'number','Вычисли: 2³.',null,'8','2·2·2 = 8.'
+select id,1,'number','Вычисли: 2³.',null::jsonb,'8','2·2·2 = 8.'
 from nodes where code='ALG-9-04' and subject_id='a0000000-0000-0000-0000-000000000001'
 union all select id,1,'choice','Чему равно a⁵ · a³?',
- '["a8","a15","a2","a^15/8"]','a8','При умножении степеней с одинаковым основанием показатели складываются: 5+3=8.'
+ '["a8","a15","a2","a^15/8"]'::jsonb,'a8','При умножении степеней с одинаковым основанием показатели складываются: 5+3=8.'
 from nodes where code='ALG-9-04' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,2,'short','Упрости: a⁷ : a³.',null,'a^4','При делении степеней показатели вычитаются: 7-3=4.'
+union all select id,2,'short','Упрости: a⁷ : a³.',null::jsonb,'a^4','При делении степеней показатели вычитаются: 7-3=4.'
 from nodes where code='ALG-9-04' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,2,'number','Вычисли: (2²)³.',null,'64','Возведение степени в степень: показатели перемножаются 2·3=6, 2^6=64.'
+union all select id,2,'number','Вычисли: (2²)³.',null::jsonb,'64','Возведение степени в степень: показатели перемножаются 2·3=6, 2^6=64.'
 from nodes where code='ALG-9-04' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,3,'short','Реши уравнение: 2^x = 16.',null,'4','16 = 2^4, значит x=4.'
+union all select id,3,'short','Реши уравнение: 2^x = 16.',null::jsonb,'4','16 = 2^4, значит x=4.'
 from nodes where code='ALG-9-04' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,3,'number','Найди x: 3^x = 81.',null,'4','81 = 3^4.'
+union all select id,3,'number','Найди x: 3^x = 81.',null::jsonb,'4','81 = 3^4.'
 from nodes where code='ALG-9-04' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,4,'short','Реши: 5^(2x) = 5^8. Найди x.',null,'4','Основания равны, значит показатели равны: 2x=8, x=4.'
+union all select id,4,'short','Реши: 5^(2x) = 5^8. Найди x.',null::jsonb,'4','Основания равны, значит показатели равны: 2x=8, x=4.'
 from nodes where code='ALG-9-04' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,5,'short','Реши: 2^(x+1) = 32. Найди x.',null,'4','32=2^5, x+1=5, x=4.'
+union all select id,5,'short','Реши: 2^(x+1) = 32. Найди x.',null::jsonb,'4','32=2^5, x+1=5, x=4.'
 from nodes where code='ALG-9-04' and subject_id='a0000000-0000-0000-0000-000000000001';
 
 -- ---- Root-cause support tasks (2 each) ----
 insert into tasks (node_id, difficulty, type, prompt, options, answer, solution)
 select id,1,'choice','Чему равно a³ · a²?',
- '["a5","a6","a1","a^3/2"]','a5','Показатели степеней складываются при умножении: 3+2=5.'
+ '["a5","a6","a1","a^3/2"]'::jsonb,'a5','Показатели степеней складываются при умножении: 3+2=5.'
 from nodes where code='ALG-7-05' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,2,'short','Упрости: (a²)⁴.',null,'a^8','Показатели перемножаются при возведении степени в степень: 2·4=8.'
+union all select id,2,'short','Упрости: (a²)⁴.',null::jsonb,'a^8','Показатели перемножаются при возведении степени в степень: 2·4=8.'
 from nodes where code='ALG-7-05' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,1,'number','Вычисли: 1/2 + 1/4.',null,'0.75','Общий знаменатель 4: 2/4+1/4=3/4=0.75.'
+union all select id,1,'number','Вычисли: 1/2 + 1/4.',null::jsonb,'0.75','Общий знаменатель 4: 2/4+1/4=3/4=0.75.'
 from nodes where code='ALG-6-01' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,2,'short','Сложи дроби: 2/3 + 1/6.',null,'5/6','Приводим к знаменателю 6: 4/6+1/6=5/6.'
+union all select id,2,'short','Сложи дроби: 2/3 + 1/6.',null::jsonb,'5/6','Приводим к знаменателю 6: 4/6+1/6=5/6.'
 from nodes where code='ALG-6-02' and subject_id='a0000000-0000-0000-0000-000000000001'
 union all select id,1,'choice','Раскрой скобки: -(x - 5).',
- '["-x-5","-x+5","x-5","x+5"]','-x+5','Минус перед скобкой меняет знаки внутри на противоположные.'
+ '["-x-5","-x+5","x-5","x+5"]'::jsonb,'-x+5','Минус перед скобкой меняет знаки внутри на противоположные.'
 from nodes where code='ALG-7-02' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,2,'short','Реши уравнение: 3x - 6 = 0.',null,'2','3x=6, x=2.'
+union all select id,2,'short','Реши уравнение: 3x - 6 = 0.',null::jsonb,'2','3x=6, x=2.'
 from nodes where code='ALG-7-03' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,1,'number','Найди √16.',null,'4','4·4=16.'
+union all select id,1,'number','Найди √16.',null::jsonb,'4','4·4=16.'
 from nodes where code='ALG-8-01' and subject_id='a0000000-0000-0000-0000-000000000001'
-union all select id,2,'short','Разложи на множители: x² - 9.',null,'(x-3)(x+3)','Разность квадратов: a²-b²=(a-b)(a+b).'
+union all select id,2,'short','Разложи на множители: x² - 9.',null::jsonb,'(x-3)(x+3)','Разность квадратов: a²-b²=(a-b)(a+b).'
 from nodes where code='ALG-8-03' and subject_id='a0000000-0000-0000-0000-000000000001';
 
 -- ---- PHYS-9-02 Скорость. Равномерное движение (8) ----
 insert into tasks (node_id, difficulty, type, prompt, options, answer, solution)
-select id,1,'number','Тело прошло 100 м за 20 с. Найди скорость (м/с).',null,'5','v=s/t=100/20=5 м/с.'
+select id,1,'number','Тело прошло 100 м за 20 с. Найди скорость (м/с).',null::jsonb,'5','v=s/t=100/20=5 м/с.'
 from nodes where code='PHYS-9-02' and subject_id='a0000000-0000-0000-0000-000000000002'
 union all select id,1,'choice','В каких единицах измеряется скорость в СИ?',
- '["м/с","км/ч","м/с²","с/м"]','м/с','Единица скорости в СИ — метр в секунду.'
+ '["м/с","км/ч","м/с²","с/м"]'::jsonb,'м/с','Единица скорости в СИ — метр в секунду.'
 from nodes where code='PHYS-9-02' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,2,'number','Автомобиль едет со скоростью 20 м/с. Сколько метров он проедет за 15 с?',null,'300','s=v·t=20·15=300 м.'
+union all select id,2,'number','Автомобиль едет со скоростью 20 м/с. Сколько метров он проедет за 15 с?',null::jsonb,'300','s=v·t=20·15=300 м.'
 from nodes where code='PHYS-9-02' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,2,'short','Переведи 72 км/ч в м/с.',null,'20','72 км/ч = 72000/3600 = 20 м/с.'
+union all select id,2,'short','Переведи 72 км/ч в м/с.',null::jsonb,'20','72 км/ч = 72000/3600 = 20 м/с.'
 from nodes where code='PHYS-9-02' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,3,'number','Поезд прошёл 180 км за 3 часа. Найди среднюю скорость в км/ч.',null,'60','v=s/t=180/3=60 км/ч.'
+union all select id,3,'number','Поезд прошёл 180 км за 3 часа. Найди среднюю скорость в км/ч.',null::jsonb,'60','v=s/t=180/3=60 км/ч.'
 from nodes where code='PHYS-9-02' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,3,'short','Два тела движутся навстречу со скоростями 10 м/с и 15 м/с. Найди скорость сближения.',null,'25','При встречном движении скорости складываются: 10+15=25 м/с.'
+union all select id,3,'short','Два тела движутся навстречу со скоростями 10 м/с и 15 м/с. Найди скорость сближения.',null::jsonb,'25','При встречном движении скорости складываются: 10+15=25 м/с.'
 from nodes where code='PHYS-9-02' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,4,'number','Расстояние между городами 240 км. Первую половину пути машина ехала 80 км/ч. Сколько часов заняла первая половина?',null,'1.5','s1=120 км, t=120/80=1.5 ч.'
+union all select id,4,'number','Расстояние между городами 240 км. Первую половину пути машина ехала 80 км/ч. Сколько часов заняла первая половина?',null::jsonb,'1.5','s1=120 км, t=120/80=1.5 ч.'
 from nodes where code='PHYS-9-02' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,5,'short','Тело движется равномерно по закону x=5+2t. Найди путь за первые 10 с.',null,'20','Скорость v=2 м/с (коэффициент при t), путь = v·t = 2·10=20 м.'
+union all select id,5,'short','Тело движется равномерно по закону x=5+2t. Найди путь за первые 10 с.',null::jsonb,'20','Скорость v=2 м/с (коэффициент при t), путь = v·t = 2·10=20 м.'
 from nodes where code='PHYS-9-02' and subject_id='a0000000-0000-0000-0000-000000000002';
 
 -- ---- PHYS-9-05 Второй закон Ньютона (8) ----
 insert into tasks (node_id, difficulty, type, prompt, options, answer, solution)
 select id,1,'choice','Как формулируется второй закон Ньютона?',
- '["F=ma","v=s/t","p=mv","A=Fs"]','F=ma','Сила равна произведению массы на ускорение.'
+ '["F=ma","v=s/t","p=mv","A=Fs"]'::jsonb,'F=ma','Сила равна произведению массы на ускорение.'
 from nodes where code='PHYS-9-05' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,1,'number','Найди силу, если масса тела 2 кг, ускорение 3 м/с².',null,'6','F=ma=2·3=6 Н.'
+union all select id,1,'number','Найди силу, если масса тела 2 кг, ускорение 3 м/с².',null::jsonb,'6','F=ma=2·3=6 Н.'
 from nodes where code='PHYS-9-05' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,2,'number','На тело массой 5 кг действует сила 20 Н. Найди ускорение (м/с²).',null,'4','a=F/m=20/5=4 м/с².'
+union all select id,2,'number','На тело массой 5 кг действует сила 20 Н. Найди ускорение (м/с²).',null::jsonb,'4','a=F/m=20/5=4 м/с².'
 from nodes where code='PHYS-9-05' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,2,'short','Тело массой 10 кг разгоняется с ускорением 0.5 м/с². Найди силу.',null,'5','F=ma=10·0.5=5 Н.'
+union all select id,2,'short','Тело массой 10 кг разгоняется с ускорением 0.5 м/с². Найди силу.',null::jsonb,'5','F=ma=10·0.5=5 Н.'
 from nodes where code='PHYS-9-05' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,3,'number','Найди массу тела, если сила 12 Н даёт ускорение 4 м/с².',null,'3','m=F/a=12/4=3 кг.'
+union all select id,3,'number','Найди массу тела, если сила 12 Н даёт ускорение 4 м/с².',null::jsonb,'3','m=F/a=12/4=3 кг.'
 from nodes where code='PHYS-9-05' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,3,'short','На тело действуют две силы: 10 Н вправо и 4 Н влево. Масса тела 2 кг. Найди ускорение.',null,'3','Равнодействующая F=10-4=6 Н, a=F/m=6/2=3 м/с².'
+union all select id,3,'short','На тело действуют две силы: 10 Н вправо и 4 Н влево. Масса тела 2 кг. Найди ускорение.',null::jsonb,'3','Равнодействующая F=10-4=6 Н, a=F/m=6/2=3 м/с².'
 from nodes where code='PHYS-9-05' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,4,'number','Тело массой 4 кг движется с ускорением 2.5 м/с². Найди действующую силу.',null,'10','F=ma=4·2.5=10 Н.'
+union all select id,4,'number','Тело массой 4 кг движется с ускорением 2.5 м/с². Найди действующую силу.',null::jsonb,'10','F=ma=4·2.5=10 Н.'
 from nodes where code='PHYS-9-05' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,5,'short','Лифт массой 500 кг поднимается с ускорением 1 м/с² (g=10 м/с²). Найди силу натяжения троса.',null,'5500','T=m(g+a)=500·(10+1)=5500 Н.'
+union all select id,5,'short','Лифт массой 500 кг поднимается с ускорением 1 м/с² (g=10 м/с²). Найди силу натяжения троса.',null::jsonb,'5500','T=m(g+a)=500·(10+1)=5500 Н.'
 from nodes where code='PHYS-9-05' and subject_id='a0000000-0000-0000-0000-000000000002';
 
 -- ---- PHYS-9-09 Механическая работа и мощность (8) ----
 insert into tasks (node_id, difficulty, type, prompt, options, answer, solution)
 select id,1,'choice','В каких единицах измеряется работа в СИ?',
- '["Джоуль","Ватт","Ньютон","Паскаль"]','Джоуль','Работа измеряется в джоулях (Дж).'
+ '["Джоуль","Ватт","Ньютон","Паскаль"]'::jsonb,'Джоуль','Работа измеряется в джоулях (Дж).'
 from nodes where code='PHYS-9-09' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,1,'number','Найди работу силы 10 Н при перемещении тела на 5 м вдоль направления силы.',null,'50','A=F·s=10·5=50 Дж.'
+union all select id,1,'number','Найди работу силы 10 Н при перемещении тела на 5 м вдоль направления силы.',null::jsonb,'50','A=F·s=10·5=50 Дж.'
 from nodes where code='PHYS-9-09' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,2,'number','Работа 200 Дж выполнена за 10 с. Найди мощность (Вт).',null,'20','N=A/t=200/10=20 Вт.'
+union all select id,2,'number','Работа 200 Дж выполнена за 10 с. Найди мощность (Вт).',null::jsonb,'20','N=A/t=200/10=20 Вт.'
 from nodes where code='PHYS-9-09' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,2,'short','Кран поднимает груз массой 50 кг на высоту 4 м (g=10). Найди совершённую работу.',null,'2000','A=mgh=50·10·4=2000 Дж.'
+union all select id,2,'short','Кран поднимает груз массой 50 кг на высоту 4 м (g=10). Найди совершённую работу.',null::jsonb,'2000','A=mgh=50·10·4=2000 Дж.'
 from nodes where code='PHYS-9-09' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,3,'number','Мощность двигателя 500 Вт. Сколько работы он совершит за 20 с?',null,'10000','A=N·t=500·20=10000 Дж.'
+union all select id,3,'number','Мощность двигателя 500 Вт. Сколько работы он совершит за 20 с?',null::jsonb,'10000','A=N·t=500·20=10000 Дж.'
 from nodes where code='PHYS-9-09' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,3,'short','Найди мощность, если сила 40 Н перемещает тело со скоростью 3 м/с в направлении силы.',null,'120','N=F·v=40·3=120 Вт.'
+union all select id,3,'short','Найди мощность, если сила 40 Н перемещает тело со скоростью 3 м/с в направлении силы.',null::jsonb,'120','N=F·v=40·3=120 Вт.'
 from nodes where code='PHYS-9-09' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,4,'number','Тело массой 20 кг подняли на высоту 2 м за 4 с (g=10). Найди мощность.',null,'100','A=mgh=400 Дж, N=A/t=400/4=100 Вт.'
+union all select id,4,'number','Тело массой 20 кг подняли на высоту 2 м за 4 с (g=10). Найди мощность.',null::jsonb,'100','A=mgh=400 Дж, N=A/t=400/4=100 Вт.'
 from nodes where code='PHYS-9-09' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,5,'short','Сила 25 Н направлена под углом 60° к перемещению 8 м (cos60°=0.5). Найди работу.',null,'100','A=F·s·cosα=25·8·0.5=100 Дж.'
+union all select id,5,'short','Сила 25 Н направлена под углом 60° к перемещению 8 м (cos60°=0.5). Найди работу.',null::jsonb,'100','A=F·s·cosα=25·8·0.5=100 Дж.'
 from nodes where code='PHYS-9-09' and subject_id='a0000000-0000-0000-0000-000000000002';
 
 -- ---- Root-cause support tasks for physics prerequisites (2 each) ----
 insert into tasks (node_id, difficulty, type, prompt, options, answer, solution)
-select id,1,'number','Плотность вещества 2 г/см³, объём 5 см³. Найди массу (г).',null,'10','m=ρ·V=2·5=10 г.'
+select id,1,'number','Плотность вещества 2 г/см³, объём 5 см³. Найди массу (г).',null::jsonb,'10','m=ρ·V=2·5=10 г.'
 from nodes where code='PHYS-7-04' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,2,'short','Тело объёмом 10 см³ имеет массу 27 г. Найди плотность (г/см³).',null,'2.7','ρ=m/V=27/10=2.7 г/см³.'
+union all select id,2,'short','Тело объёмом 10 см³ имеет массу 27 г. Найди плотность (г/см³).',null::jsonb,'2.7','ρ=m/V=27/10=2.7 г/см³.'
 from nodes where code='PHYS-7-04' and subject_id='a0000000-0000-0000-0000-000000000002'
 union all select id,1,'choice','Что показывает сила упругости?',
- '["Реакцию тела на деформацию","Взаимодействие зарядов","Притяжение к Земле","Сопротивление среды"]','Реакцию тела на деформацию','Сила упругости возникает при деформации тела и стремится вернуть его форму.'
+ '["Реакцию тела на деформацию","Взаимодействие зарядов","Притяжение к Земле","Сопротивление среды"]'::jsonb,'Реакцию тела на деформацию','Сила упругости возникает при деформации тела и стремится вернуть его форму.'
 from nodes where code='PHYS-7-05' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,2,'number','Найди силу тяжести тела массой 8 кг (g=10 м/с²).',null,'80','Fт=mg=8·10=80 Н.'
+union all select id,2,'number','Найди силу тяжести тела массой 8 кг (g=10 м/с²).',null::jsonb,'80','Fт=mg=8·10=80 Н.'
 from nodes where code='PHYS-7-05' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,2,'short','Тело равномерно ускоряется от 0 до 20 м/с за 4 с. Найди ускорение.',null,'5','a=∆v/∆t=20/4=5 м/с².'
+union all select id,2,'short','Тело равномерно ускоряется от 0 до 20 м/с за 4 с. Найди ускорение.',null::jsonb,'5','a=∆v/∆t=20/4=5 м/с².'
 from nodes where code='PHYS-9-03' and subject_id='a0000000-0000-0000-0000-000000000002'
-union all select id,3,'number','Найди третий закон Ньютона: сила действия 15 Н. Чему равна сила противодействия?',null,'15','По третьему закону Ньютона силы действия и противодействия равны по модулю.'
+union all select id,3,'number','Найди третий закон Ньютона: сила действия 15 Н. Чему равна сила противодействия?',null::jsonb,'15','По третьему закону Ньютона силы действия и противодействия равны по модулю.'
 from nodes where code='PHYS-9-06' and subject_id='a0000000-0000-0000-0000-000000000002';
 
 -- ============ DEMO ACCOUNTS NOTE ============
