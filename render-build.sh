@@ -9,14 +9,24 @@ set -euo pipefail
 # real Gemini key only as a Supabase Edge Function secret (supabase secrets set
 # GEMINI_API_KEY=...) — ai.js already falls back to calling the Edge Function
 # whenever GEMINI_API_KEY is empty.
+#
+# AI_FALLBACK_* are blanked for exactly the same reason — a backup provider key
+# is just as stealable from view-source. The backup provider is a local-dev and
+# Edge-Function concern, never something a public static build ships.
+GEMINI_MODEL="${GEMINI_MODEL:-gemini-3.5-flash-lite}"
 cat > config.js << EOF
 export const CONFIG = {
   SUPABASE_URL: '${SUPABASE_URL:-}',
   SUPABASE_ANON_KEY: '${SUPABASE_ANON_KEY:-}',
   GEMINI_API_KEY: '',
-  GEMINI_MODEL: 'gemini-2.5-flash',
-  GEMINI_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+  GEMINI_MODEL: '${GEMINI_MODEL}',
+  GEMINI_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent',
   FORCE_DEMO: ${FORCE_DEMO:-true},
+  FORCE_DEMO_AI: ${FORCE_DEMO_AI:-false},
+  AI_DAILY_BUDGET: ${AI_DAILY_BUDGET:-200},
+  AI_FALLBACK_URL: '',
+  AI_FALLBACK_KEY: '',
+  AI_FALLBACK_MODEL: '',
 };
 EOF
 

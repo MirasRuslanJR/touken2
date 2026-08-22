@@ -13,14 +13,16 @@ export async function renderTutor(root, { nodeId }) {
     <div class="topbar">
       <div><div class="eyebrow">Сократ · тьютор</div><h1>${node ? titleFor(node) : 'Спроси, не застревая'}</h1></div>
     </div>
-    <div class="card card-pad" style="max-width:720px">
-      <div class="chat-log" id="chat-log">
-        <div class="bubble ai">Привет. Я не даю готовых решений — только вопросы, которые подводят тебя к ответу самому. С чем разбираемся?</div>
-      </div>
-      <div class="hint-ladder" id="hint-ladder">${Array.from({ length: 5 }, () => '<span></span>').join('')}</div>
-      <div class="chat-input-row">
-        <input class="input" id="chat-input" placeholder="Напиши свой вопрос или ответ…">
-        <button class="btn btn-primary btn-icon" id="chat-send" aria-label="Отправить">${icon('arrowRight')}</button>
+    <div class="tutor-stage">
+      <div class="card card-pad" style="max-width:720px;width:100%;margin:0 auto">
+        <div class="chat-log" id="chat-log">
+          <div class="bubble ai">Привет. Я не даю готовых решений — только вопросы, которые подводят тебя к ответу самому. С чем разбираемся?</div>
+        </div>
+        <div class="hint-ladder" id="hint-ladder">${Array.from({ length: 5 }, () => '<span></span>').join('')}</div>
+        <div class="chat-input-row">
+          <input class="input" id="chat-input" placeholder="Напиши свой вопрос или ответ…">
+          <button class="btn btn-primary btn-icon" id="chat-send" aria-label="Отправить">${icon('arrowRight')}</button>
+        </div>
       </div>
     </div>`;
 

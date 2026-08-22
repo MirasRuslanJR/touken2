@@ -177,6 +177,16 @@ function buildClassRoster() {
   }));
 }
 
+// A couple of students already "knocking" on the demo class so the teacher's
+// accept/reject screen has something real to show without needing the
+// student-side join flow to be exercised first in the same demo session.
+function buildPendingRequests() {
+  return [
+    { student_id: 'demo-pending-0', class_id: 'demo-class', status: 'pending', profiles: { id: 'demo-pending-0', full_name: 'Асель Нурлановна', role: 'student', grade: 9, school: 'Школа-лицей №5, Алматы' } },
+    { student_id: 'demo-pending-1', class_id: 'demo-class', status: 'pending', profiles: { id: 'demo-pending-1', full_name: 'Ринат Ахметов', role: 'student', grade: 9, school: 'НИШ ФМН, Караганда' } },
+  ];
+}
+
 class DemoStore {
   constructor() {
     this.subjects = [
@@ -193,6 +203,8 @@ class DemoStore {
       attempts: saved.attempts || { 'demo-student': buildAttempts() },
       diagnostics: saved.diagnostics || [],
       roster: saved.roster || buildClassRoster(),
+      pending: saved.pending || buildPendingRequests(),
+      profileOverrides: saved.profileOverrides || {},
     };
     this.save();
   }
@@ -200,9 +212,15 @@ class DemoStore {
   setRole(role) { this.state.role = role; this.save(); }
   clear() { localStorage.removeItem(LS_KEY); }
   currentUser() {
-    return this.state.role === 'teacher'
+    const base = this.state.role === 'teacher'
       ? { id: 'demo-teacher', full_name: 'Айнур Serikovna', role: 'teacher', grade: null }
       : { id: 'demo-student', full_name: 'Демо Ученик', role: 'student', grade: 9 };
+    return { ...base, ...(this.state.profileOverrides[base.id] || {}) };
+  }
+  updateProfile(userId, patch) {
+    this.state.profileOverrides[userId] = { ...(this.state.profileOverrides[userId] || {}), ...patch };
+    this.save();
+    return { ...this.currentUser(), ...patch };
   }
   mastery(userId) {
     const m = this.state.mastery[userId] || {};
@@ -235,6 +253,49 @@ class DemoStore {
     return c;
   }
   roster() { return this.state.roster.map(s => ({ student_id: s.id, profiles: s })); }
+  findClassByJoinCode(code) {
+    return this.classes().find(c => c.join_code === code.trim().toUpperCase()) || null;
+  }
+  requestJoin(classId, studentId) {
+    this.state.pending = this.state.pending.filter(p => !(p.class_id === classId && p.student_id === studentId));
+    const me = this.currentUser();
+    const entry = { student_id: studentId, class_id: classId, status: 'pending', profiles: { ...me, id: studentId } };
+    this.state.pending.push(entry);
+    this.save();
+    return entry;
+  }
+  pendingFor(classId) { return this.state.pending.filter(p => p.class_id === classId); }
+  myMemberships(studentId) {
+    const results = this.state.pending
+      .filter(p => p.student_id === studentId)
+      .map(p => ({ class_id: p.class_id, status: 'pending', classes: this.classes().find(c => c.id === p.class_id) }));
+    if (this.state.roster.some(s => s.id === studentId)) {
+      const cls = this.classes()[0];
+      if (cls) results.push({ class_id: cls.id, status: 'approved', classes: cls });
+    }
+    return results;
+  }
+  setMembershipStatus(classId, studentId, status) {
+    const entry = this.state.pending.find(p => p.class_id === classId && p.student_id === studentId);
+    this.state.pending = this.state.pending.filter(p => !(p.class_id === classId && p.student_id === studentId));
+    if (status === 'approved' && entry) {
+      this.state.roster.push({
+        id: studentId, full_name: entry.profiles.full_name, role: 'student', grade: entry.profiles.grade || 9,
+        school: entry.profiles.school, accuracy: Math.round(40 + Math.random() * 50), trend: 'flat', lastActive: 0,
+      });
+    }
+    this.save();
+  }
+  addNode(row) {
+    const n = { id: `node-${Date.now()}`, ...row };
+    this.nodes.push(n);
+    return n;
+  }
+  addTasks(rows) {
+    const withIds = rows.map((t, i) => ({ ...t, id: `task-${Date.now()}-${i}`, options: t.options || null }));
+    this.tasks.push(...withIds);
+    return withIds;
+  }
 }
 
 export const DEMO = new DemoStore();

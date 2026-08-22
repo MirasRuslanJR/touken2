@@ -3,9 +3,10 @@
 import { getNode, listTasks, recordAttempt, upsertMastery, getMastery, listSubjects } from '../db.js';
 import { queueAttempt } from '../offline.js';
 import { updateMastery, nextDifficulty, resolveComprehensionCheck } from '../mastery.js';
-import { titleFor } from '../i18n.js';
+import { titleFor, t } from '../i18n.js';
 import { store } from '../store.js';
 import { toast, icon } from '../ui.js';
+import { speak } from '../a11y.js';
 
 function sessionKey(nodeId) { return `tamyr_diff_${nodeId}`; }
 
@@ -37,13 +38,21 @@ export async function renderTask(root, { nodeId }) {
       <div class="task-card">
         <div class="task-meta">
           <span class="pill">${node.code}</span>
-          <span class="pill">Уровень ${task.difficulty}/5</span>
+          <span class="pill">${t('task_level')} ${task.difficulty}/5</span>
         </div>
         <div class="eyebrow" style="margin-top:14px">${titleFor(node)}</div>
-        <p class="task-prompt">${task.prompt}</p>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <p class="task-prompt" style="flex:1">${task.prompt}</p>
+          ${('speechSynthesis' in window) ? `<button class="btn btn-ghost btn-icon btn-sm" id="speak-prompt" aria-label="Прочитать вслух" style="margin-top:16px;flex-shrink:0">${icon('volume')}</button>` : ''}
+        </div>
         <div id="task-body"></div>
         <div id="feedback-slot"></div>
+        <div class="task-actions">
+          <a class="btn btn-ghost btn-sm" href="#/tutor/${nodeId}">${icon('tutor')}${t('task_ask_socrates')}</a>
+          <a class="btn btn-ghost btn-sm" href="#/feynman/${nodeId}">${icon('mic')}${t('task_explain_own')}</a>
+        </div>
       </div>`;
+    document.getElementById('speak-prompt')?.addEventListener('click', () => speak(task.prompt));
     const body = root.querySelector('#task-body');
     const options = task.options ? (Array.isArray(task.options) ? task.options : JSON.parse(task.options)) : null;
     if (task.type === 'choice' && options) {
@@ -106,16 +115,30 @@ export async function renderTask(root, { nodeId }) {
       return;
     }
 
-    // Correct — run the "understood or guessed" comprehension check before crediting mastery.
-    slot.innerHTML = `<div class="feedback-panel correct"><strong>Верно.</strong> <span id="check-status">Проверяем, что это не угадано…</span></div>`;
-    const { callGemini } = await import('../ai.js');
-    let check;
-    try { check = await callGemini('comprehension_check', { topic: titleFor(node), solution: task.solution }); }
-    catch { check = null; }
+    // Correct — but was it understood or guessed? Only actually worth asking
+    // when a guess was *possible*: on a multiple-choice question, or when the
+    // answer came back too fast to have been worked out. Free-text answers that
+    // took real time are their own proof. This used to fire on every single
+    // correct answer, which burned the whole daily AI budget in ~18 tasks and
+    // interrogated students who had plainly done the work.
+    const guessable = task.type === 'choice';
+    const suspiciouslyFast = timeSpent < 8000 && task.difficulty >= 3;
+    const needsCheck = guessable || suspiciouslyFast;
 
-    if (!check) { await creditMastery(true); return; }
-
+    slot.innerHTML = `<div class="feedback-panel correct"><strong>${t('task_correct')}</strong>${needsCheck
+      ? ` <span id="check-status" style="display:inline-flex;align-items:center;gap:8px"><span class="skel" style="width:14px;height:14px;border-radius:50%;flex-shrink:0"></span>${t('task_checking')}</span>`
+      : ''}</div>`;
+    // Declared before any creditMastery() call — it closes over this binding,
+    // so calling it earlier would hit the temporal dead zone.
     const panel = slot.querySelector('.feedback-panel');
+
+    if (!needsCheck) { await creditMastery(true); return; }
+
+    const { callGemini } = await import('../ai.js');
+    const check = await callGemini('comprehension_check', { topic: titleFor(node), solution: task.solution });
+
+    if (!check?.question) { await creditMastery(true); return; }
+
     panel.innerHTML = `
       <strong>Верно.</strong>
       <p style="margin-top:8px">Ещё один вопрос, чтобы убедиться, что это не угадано:</p>

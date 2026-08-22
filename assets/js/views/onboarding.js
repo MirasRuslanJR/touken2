@@ -1,7 +1,10 @@
-// views/onboarding.js — grade, subject, goal, deadline. Feeds straight into the diagnostic.
-import { listSubjects, saveGoal } from '../db.js';
+// views/onboarding.js — grade, subject, goal, deadline, school + optional class
+// code. Feeds straight into the diagnostic; the class code (if any) sends a
+// pending join request a teacher accepts/rejects from their class screen.
+import { listSubjects, saveGoal, updateProfile, findClassByJoinCode, requestJoinClass } from '../db.js';
 import { titleFor } from '../i18n.js';
 import { store } from '../store.js';
+import { toast } from '../ui.js';
 
 const GOALS = [
   { id: 'ent', label: 'ЕНТ' }, { id: 'olymp', label: 'Олимпиада' },
@@ -33,6 +36,16 @@ export async function renderOnboarding(root) {
         <input class="input" type="date" id="target-date">
       </div>
 
+      <div class="field" style="margin-top:20px"><label>Школа</label>
+        <input class="input" id="school" placeholder="Например: Школа-лицей №5, Алматы">
+      </div>
+
+      <div class="field" style="margin-top:20px">
+        <label>Код класса от учителя <span style="color:var(--ink-soft);font-weight:400">(необязательно)</span></label>
+        <input class="input mono" id="class-code" placeholder="Например: TAMYR9" maxlength="8" style="text-transform:uppercase">
+        <p style="font-size:13px;color:var(--ink-soft);margin-top:6px">Учитель увидит заявку и должен будет её принять — ты сразу попадёшь в тепловую карту класса. Без кода тоже можно — просто занимайся сам.</p>
+      </div>
+
       <button class="btn btn-primary" id="go" style="margin-top:28px;width:100%">Начать диагностику</button>
     </div>`;
 
@@ -47,14 +60,38 @@ export async function renderOnboarding(root) {
     root.querySelectorAll('[data-goal]').forEach(b => b.classList.toggle('selected', b.dataset.goal === state.goal));
   }
 
-  document.getElementById('go').addEventListener('click', async () => {
+  document.getElementById('go').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
     const subject = subjects.find(s => s.id === state.subjectId);
     const user = store.get().user;
+    const school = document.getElementById('school').value.trim();
+    const classCode = document.getElementById('class-code').value.trim();
+
     await saveGoal({
       user_id: user.id, kind: state.goal,
       title: GOALS.find(g => g.id === state.goal)?.label || 'Цель',
       target_date: state.date || null, target_score: state.goal === 'ent' ? 100 : null,
     });
+
+    if (school) {
+      try { await updateProfile(user.id, { school }); store.set({ user: { ...user, school } }); } catch { /* non-critical */ }
+    }
+
+    if (classCode) {
+      try {
+        const cls = await findClassByJoinCode(classCode);
+        if (cls) {
+          await requestJoinClass(cls.id, user.id);
+          toast(`Заявка отправлена в «${cls.title}» — жди подтверждения от учителя`, 'root');
+        } else {
+          toast('Код класса не найден — проверь у учителя и добавь его позже в настройках', 'gap');
+        }
+      } catch (err) {
+        toast(err.message || 'Не удалось отправить заявку', 'gap');
+      }
+    }
+
     location.hash = `#/diagnostic/${subject.slug}`;
   });
 }

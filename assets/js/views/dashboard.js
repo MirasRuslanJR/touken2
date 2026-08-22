@@ -3,7 +3,7 @@
 import { listSubjects, listNodes, listEdges, getMastery, listAttempts, getGoal } from '../db.js';
 import { renderGraph } from '../graph.js';
 import { rankWeakSpots, subjectMasteryScore } from '../mastery.js';
-import { titleFor } from '../i18n.js';
+import { titleFor, t, localeTag } from '../i18n.js';
 import { store } from '../store.js';
 
 function computeStreak(attempts) {
@@ -33,43 +33,43 @@ export async function renderDashboard(root) {
 
   root.innerHTML = `
     <div class="topbar">
-      <div><div class="eyebrow">С возвращением</div><h1>${user.full_name || 'Ученик'}</h1></div>
-      <a class="btn btn-primary" href="#/diagnostic/${math.slug}">Пройти диагностику</a>
+      <div><div class="eyebrow">${t('dash_welcome')}</div><h1>${user.full_name || 'Ученик'}</h1></div>
+      <a class="btn btn-primary" href="#/diagnostic/${math.slug}">${t('dash_take_diagnostic')}</a>
     </div>
     <div class="stat-row" style="margin-bottom:24px">
-      <div class="card stat"><div class="num mono">${overall}%</div><div class="lbl">общее освоение</div></div>
-      <div class="card stat"><div class="num mono">${streak}</div><div class="lbl">дней подряд</div></div>
-      <div class="card stat"><div class="num mono">${daysLeft ?? '—'}</div><div class="lbl">${daysLeft != null ? 'дней · ' : ''}${goal?.title || 'до цели'}</div></div>
-      <div class="card stat"><div class="num mono">${attempts.length}</div><div class="lbl">попыток за месяц</div></div>
+      <div class="card stat"><div class="num mono">${overall}%</div><div class="lbl">${t('dash_overall')}</div></div>
+      <div class="card stat"><div class="num mono">${streak}</div><div class="lbl">${t('dash_streak')}</div></div>
+      <div class="card stat"><div class="num mono">${daysLeft ?? '—'}</div><div class="lbl">${goal?.title || t('dash_to_goal')}</div></div>
+      <div class="card stat"><div class="num mono">${attempts.length}</div><div class="lbl">${t('dash_attempts')}</div></div>
     </div>
     <div class="grid-2" style="align-items:start">
       <div>
-        <h3 style="margin-bottom:12px">Слабые места по приоритету</h3>
+        <h3 style="margin-bottom:12px">${t('dash_weak')}</h3>
         <div class="card">
           ${weak.length ? weak.map(w => `
             <a href="#/task/${w.node_id}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--hairline);text-decoration:none;color:var(--ink)">
               <span class="mastery-dot ${w.status}"></span>
               <span style="flex:1">${titleFor(w.node)}</span>
               <span class="mono" style="color:var(--ink-soft);font-size:13px">${w.score}%</span>
-            </a>`).join('') : `<div class="empty"><h3>Пробелов не найдено</h3><p>Похоже, всё закрыто — пройди диагностику ещё раз, чтобы проверить.</p></div>`}
+            </a>`).join('') : `<div class="empty"><h3>${t('dash_no_gaps')}</h3><p>${t('dash_no_gaps_sub')}</p></div>`}
         </div>
-        <h3 style="margin:24px 0 12px">История попыток</h3>
+        <h3 style="margin:24px 0 12px">${t('dash_history')}</h3>
         <div class="card">
           ${attempts.slice(0, 8).map(a => `
             <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--hairline)">
               <span class="mastery-dot ${a.is_correct ? 'mastered' : 'gap'}"></span>
               <span style="flex:1;color:var(--ink-soft);font-size:13px">${titleFor(nodesById.get(a.node_id)) || a.node_id}</span>
-              <span class="mono" style="font-size:12px;color:var(--ink-soft)">${new Date(a.created_at).toLocaleDateString('ru-RU')}</span>
-            </div>`).join('') || `<div class="empty"><h3>Пока пусто</h3></div>`}
+              <span class="mono" style="font-size:12px;color:var(--ink-soft)">${new Date(a.created_at).toLocaleDateString(localeTag())}</span>
+            </div>`).join('') || `<div class="empty"><h3>${t('dash_empty')}</h3></div>`}
         </div>
       </div>
       <div>
-        <h3 style="margin-bottom:12px">Твой граф</h3>
+        <h3 style="margin-bottom:12px">${t('dash_your_graph')}</h3>
         <div class="graph-wrap compact" id="mini-graph"></div>
       </div>
     </div>`;
 
   renderGraph(document.getElementById('mini-graph'),
     { nodes, edges: edges.map(e => ({ from: e.prerequisite_node_id || e.from, to: e.dependent_node_id || e.to })), mastery: masteryMap },
-    { onNodeClick: (id) => { location.hash = `#/task/${id}`; }, width: 700, height: 480 });
+    { onNodeClick: (id) => { location.hash = `#/task/${id}`; }, width: 700, height: 480, compact: true });
 }

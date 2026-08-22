@@ -14,13 +14,18 @@
 .graph-wrap svg { width: 100%; height: 100%; display: block; }
 
 .graph-edge {
-  stroke: rgba(220, 227, 223, .14);
-  stroke-width: 1.5;
-  fill: none;
-  transition: stroke var(--dur-med) var(--ease-graph), stroke-width var(--dur-med);
+  /* Each edge is a filled, tapered ribbon shape now (see taperedRibbon() in
+     graph.js) — fat where it leaves a foundational node, thin by the time it
+     reaches a leaf — not a uniform-width stroked line. A single stroke width
+     per edge still reads as a wiring diagram; a shape that actually narrows
+     along its own length is what reads as a root fiber. */
+  fill: rgba(196, 148, 90, 1);
+  fill-opacity: var(--edge-o, .3);
+  stroke: none;
+  transition: fill var(--dur-med) var(--ease-graph), fill-opacity var(--dur-med);
 }
-.graph-edge.lit { stroke: var(--root-glow); stroke-width: 2.5; }
-.graph-edge.lit-gap { stroke: var(--gap); stroke-width: 2; opacity: .7; }
+.graph-edge.lit { fill: var(--root-glow); fill-opacity: 1; }
+.graph-edge.lit-gap { fill: var(--gap); fill-opacity: .95; }
 
 .graph-node-group {
   cursor: pointer;
@@ -32,17 +37,24 @@
 
 .graph-node {
   fill: #16221D;
-  stroke: rgba(220, 227, 223, .25);
+  stroke: rgba(220, 227, 223, .38);
   stroke-width: 1.5;
   transition: fill 480ms var(--ease-graph), stroke 480ms var(--ease-graph), r var(--dur-med) var(--ease-graph);
 }
-.graph-node.gap { fill: rgba(184, 64, 47, .22); stroke: var(--gap); }
-.graph-node.learning { fill: rgba(217, 160, 74, .2); stroke: var(--steppe); }
-.graph-node.mastered { fill: rgba(11, 107, 84, .28); stroke: var(--root-glow); }
+/* Solid-ish fills on purpose: edges are drawn behind nodes, and a same-row
+   connection between neighbours is a dead-straight line through both node
+   centers — at low alpha that line visibly cuts through the circle instead
+   of ducking behind it. */
+.graph-node.gap { fill: rgba(184, 64, 47, .88); stroke: var(--gap); }
+.graph-node.learning { fill: rgba(217, 160, 74, .82); stroke: var(--steppe); }
+.graph-node.mastered { fill: rgba(11, 107, 84, .88); stroke: var(--root-glow); }
 .graph-node.focus-ring { stroke-width: 3; }
 .graph-node-group:hover .graph-node,
 .graph-node-group.selected .graph-node { stroke-width: 3; }
-.graph-node-group.selected .graph-node { fill-opacity: .5; }
+
+/* Nodes sitting on the traced root-cause chain (see graph-edge.lit-gap) get a
+   slightly heavier ring so the whole chain, not just its endpoints, reads as one story. */
+.graph-node-group.on-path .graph-node { stroke-width: 2.5; }
 
 .graph-node-glow {
   fill: none; stroke: var(--root-glow); stroke-width: 1;

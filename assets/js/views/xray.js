@@ -4,13 +4,33 @@ import { getDiagnostic, listNodes, listEdges, getMastery, listSubjects } from '.
 import { renderGraph } from '../graph.js';
 import { titleFor } from '../i18n.js';
 import { store } from '../store.js';
+import { speak } from '../a11y.js';
+import { icon, aiBadge } from '../ui.js';
 
 export async function renderXray(root, { diagId }) {
   root.innerHTML = `<div class="skel" style="height:70vh"></div>`;
-  const diag = await getDiagnostic(diagId) || JSON.parse(sessionStorage.getItem('tamyr_last_xray') || '{}');
+  // '#/xray/last' is the permanent entry point from the sidebar: there is no
+  // diagnostic id to look up, so it replays the most recent result straight
+  // from session storage. Looking up a literal 'last' row would just 404.
+  const diag = (diagId && diagId !== 'last' ? await getDiagnostic(diagId).catch(() => null) : null)
+    || JSON.parse(sessionStorage.getItem('tamyr_last_xray') || '{}');
   const cached = JSON.parse(sessionStorage.getItem('tamyr_last_xray') || '{}');
   const subjectId = diag.subject_id || cached.subjectId;
   const rootId = diag.root_node_id || cached.rootId;
+
+  // Nothing to X-ray yet — the screen only means anything after a diagnostic,
+  // so say that plainly instead of rendering an empty graph with no root.
+  if (!subjectId || !rootId) {
+    root.innerHTML = `
+      <div class="topbar"><div><div class="eyebrow">Рентген</div><h1>Сначала диагностика</h1></div></div>
+      <div class="empty">
+        <h3>Рентген появится после диагностики</h3>
+        <p>Рентген показывает не ошибку, а её причину — тему, из-за которой всё посыпалось. Чтобы её найти, нужны твои ответы.</p>
+        <a class="btn btn-primary" href="#/diagnostic/math" style="margin-top:14px;display:inline-flex">Пройти диагностику</a>
+      </div>`;
+    return;
+  }
+  const rootPath = cached.rootId === rootId ? cached.rootPath : null;
   const summary = cached.summary || { headline: 'Корень найден', explanation: diag.summary || '' };
 
   const [nodes, edges, subjects] = await Promise.all([listNodes(subjectId), listEdges(subjectId), listSubjects()]);
@@ -18,7 +38,11 @@ export async function renderXray(root, { diagId }) {
   const masteryRows = await getMastery(user.id);
   const masteryMap = new Map(masteryRows.map(m => [m.node_id, m]));
   const rootNode = nodes.find(n => n.id === rootId);
+  const nodesById = new Map(nodes.map(n => [n.id, n]));
   const subjectSlug = subjects.find(s => s.id === subjectId)?.slug || 'math';
+  const chainLabel = rootPath && rootPath.length > 1
+    ? rootPath.map(id => titleFor(nodesById.get(id))).filter(Boolean).join(' ← ')
+    : '';
 
   root.innerHTML = `
     <div class="topbar">
@@ -28,15 +52,25 @@ export async function renderXray(root, { diagId }) {
       </div>
     </div>
     <div class="card card-pad" style="margin-bottom:20px;border-left:3px solid var(--gap)">
-      <div class="pill pill-gap" style="margin-bottom:10px">Корневой узел · ${rootNode ? titleFor(rootNode) : '—'}</div>
-      <p style="font-size:var(--t-18);line-height:1.6">${summary.explanation || 'Нашли, где всё сломалось.'}</p>
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <span class="pill pill-gap">Корневой узел · ${rootNode ? titleFor(rootNode) : '—'}</span>
+            ${aiBadge({ __source: cached.aiSource })}
+          </div>
+          <p style="font-size:var(--t-18);line-height:1.6">${summary.explanation || 'Нашли, где всё сломалось.'}</p>
+        </div>
+        ${('speechSynthesis' in window) ? `<button class="btn btn-ghost btn-icon btn-sm" id="speak-explanation" aria-label="Прочитать вслух">${icon('volume')}</button>` : ''}
+      </div>
+      ${chainLabel ? `<p style="margin-top:10px;font-family:var(--f-mono);font-size:13px;color:var(--ink-soft)">Цепочка: ${chainLabel}</p>` : ''}
     </div>
     <div class="graph-wrap" id="xray-graph"></div>
     <div style="display:flex;gap:12px;margin-top:20px">
       <a class="btn btn-primary" href="#/task/${rootId}">Закрыть пробел</a>
       <a class="btn btn-ghost" href="#/module/${subjectSlug}">Все темы</a>
     </div>`;
+  document.getElementById('speak-explanation')?.addEventListener('click', () => speak(summary.explanation || ''));
 
   const graphData = { nodes, edges: edges.map(e => ({ from: e.prerequisite_node_id || e.from, to: e.dependent_node_id || e.to })), mastery: masteryMap };
-  renderGraph(document.getElementById('xray-graph'), graphData, { highlightRoot: rootId });
+  renderGraph(document.getElementById('xray-graph'), graphData, { highlightRoot: rootId, pathNodeIds: rootPath });
 }

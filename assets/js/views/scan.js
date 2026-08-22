@@ -3,7 +3,7 @@
 // and jump straight to the root node in the graph.
 import { getNodeByCode } from '../db.js';
 import { titleFor } from '../i18n.js';
-import { icon, toast } from '../ui.js';
+import { icon, toast, aiBadge } from '../ui.js';
 
 // A small drawn "handwritten" equation as a data URI, used for the guaranteed offline demo.
 const DEMO_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -30,7 +30,16 @@ export async function renderScan(root) {
         <button class="btn btn-ghost btn-sm" id="demo-photo" style="margin-top:12px">Использовать пример без интернета</button>
         <div id="scan-frame-wrap" style="margin-top:16px"></div>
       </div>
-      <div id="result-panel"><div class="empty"><h3>Ждём фото</h3><p>Как только загрузишь — найдём конкретную строку с ошибкой.</p></div></div>
+      <div id="result-panel">
+        <div class="card card-pad">
+          <strong style="font-size:13px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em">Как это работает</strong>
+          <div style="display:flex;flex-direction:column;gap:16px;margin-top:16px">
+            <div style="display:flex;gap:12px"><span class="pill mono" style="flex-shrink:0">01</span><p>Загружаешь фото решения от руки — прямо с телефона или примером ниже.</p></div>
+            <div style="display:flex;gap:12px"><span class="pill mono" style="flex-shrink:0">02</span><p>ИИ построчно разбирает решение и находит первую строку, где логика сломалась.</p></div>
+            <div style="display:flex;gap:12px"><span class="pill mono" style="flex-shrink:0">03</span><p>Показываем не «ты ошибся», а конкретный узел графа знаний, который стоит закрыть.</p></div>
+          </div>
+        </div>
+      </div>
     </div>`;
 
   const drop = document.getElementById('drop');
@@ -42,7 +51,12 @@ export async function renderScan(root) {
   ['dragover', 'dragleave', 'drop'].forEach(evt => drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.toggle('drag', evt === 'dragover'); }));
   drop.addEventListener('drop', e => { const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); });
   fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
-  document.getElementById('demo-photo').addEventListener('click', () => handleImage(DEMO_IMAGE, true));
+  document.getElementById('demo-photo').addEventListener('click', async () => {
+    // Gemini's vision input doesn't accept image/svg+xml — rasterize the fixture
+    // to PNG first so the offline-demo button also works against a real key.
+    const png = await svgDataUrlToPng(DEMO_IMAGE, 640, 420);
+    handleImage(png, true);
+  });
 
   function handleFile(file) {
     const reader = new FileReader();
@@ -50,12 +64,26 @@ export async function renderScan(root) {
     reader.readAsDataURL(file);
   }
 
+  function svgDataUrlToPng(svgDataUrl, w, h) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = reject;
+      img.src = svgDataUrl;
+    });
+  }
+
   async function handleImage(dataUrl, isDemoAsset) {
     frameWrap.innerHTML = `<div class="scan-frame"><img src="${dataUrl}" alt="Загруженное решение"><div class="scan-highlight" id="hl" style="display:none"></div></div>`;
     resultPanel.innerHTML = `<div class="card card-pad"><div class="skel" style="height:16px;width:60%"></div><div class="skel" style="height:14px;width:90%;margin-top:10px"></div><div class="skel" style="height:14px;width:80%;margin-top:8px"></div></div>`;
 
     const base64 = dataUrl.split(',')[1] || '';
-    const mimeType = dataUrl.startsWith('data:image/svg') ? 'image/svg+xml' : (dataUrl.match(/data:(.*?);/)?.[1] || 'image/jpeg');
+    const mimeType = dataUrl.match(/data:(.*?);/)?.[1] || 'image/jpeg';
 
     const { callGemini } = await import('../ai.js');
     let result;
@@ -88,7 +116,10 @@ export async function renderScan(root) {
 
     resultPanel.innerHTML = `
       <div class="card card-pad">
-        <div class="pill pill-gap">Строка ${result.error_line} · ${result.error_type}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="pill pill-gap">Строка ${result.error_line} · ${result.error_type}</span>
+          ${aiBadge(result)}
+        </div>
         <p style="margin-top:12px;font-size:var(--t-18);line-height:1.6">${result.what_happened}</p>
         <div class="card card-pad" style="margin-top:14px;background:var(--paper)">
           <strong style="font-size:13px;color:var(--ink-soft)">Подсказка</strong>

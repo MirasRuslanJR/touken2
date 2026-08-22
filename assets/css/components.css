@@ -27,6 +27,33 @@
 .pill-gap { background: var(--gap-10); color: var(--gap); }
 .pill-steppe { background: var(--steppe-10); color: #8a6120; }
 
+/* ---- AI provenance badge ---- */
+/* Marks every AI panel with where its text actually came from, so a pre-written
+   fallback is never mistaken for a live model answer. */
+.ai-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; border-radius: var(--r-pill);
+  font-family: var(--f-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: .01em; white-space: nowrap; vertical-align: middle;
+}
+.ai-badge::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor;
+}
+.ai-badge.live { background: var(--root-10); color: var(--root); }
+.ai-badge.warn { background: var(--steppe-10); color: #8a6120; }
+.ai-badge.muted { background: var(--ink-06); color: var(--ink-soft); }
+
+/* ---- Sidebar AI budget meter ---- */
+.ai-meter {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 10px; margin-bottom: 8px;
+  border-radius: var(--r-pill); background: var(--ink-06);
+  font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft);
+}
+.ai-meter .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--root); flex-shrink: 0; }
+.ai-meter.low .dot { background: var(--steppe); }
+.ai-meter.out .dot { background: var(--gap); }
+
 /* ---- Cards ---- */
 .card {
   background: var(--paper-lift); border: 1px solid var(--hairline);
@@ -63,6 +90,14 @@ textarea.input { height: auto; min-height: 96px; padding: 12px 14px; resize: ver
 /* ---- Skeletons ---- */
 .skel { background: linear-gradient(90deg, var(--ink-06) 25%, var(--ink-12) 37%, var(--ink-06) 63%); background-size: 400% 100%; border-radius: 6px; animation: skel-sheen 1.4s ease infinite; }
 @keyframes skel-sheen { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+/* ---- Spinner (long AI operations: root-cause search, etc.) ---- */
+.spinner {
+  width: 28px; height: 28px; margin: 0 auto 16px; border-radius: 50%;
+  border: 3px solid var(--root-10); border-top-color: var(--root); animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 
 /* ---- Modal ---- */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(12, 21, 18, .45); z-index: 800; display: flex; align-items: center; justify-content: center; padding: 24px; }

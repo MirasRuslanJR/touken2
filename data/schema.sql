@@ -6,6 +6,7 @@ create table if not exists profiles (
   role text not null check (role in ('student','teacher')) default 'student',
   full_name text not null,
   grade int,
+  school text,
   lang text not null default 'ru' check (lang in ('ru','kk','en')),
   created_at timestamptz not null default now()
 );
@@ -104,6 +105,7 @@ create table if not exists classes (
 create table if not exists class_members (
   class_id uuid not null references classes(id) on delete cascade,
   student_id uuid not null references profiles(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending','approved','rejected')),
   joined_at timestamptz not null default now(),
   primary key (class_id, student_id)
 );
@@ -149,22 +151,25 @@ create policy "public read tasks" on tasks for select using (true);
 create policy "self profile" on profiles for select using (auth.uid() = id);
 create policy "self profile update" on profiles for update using (auth.uid() = id);
 create policy "self profile insert" on profiles for insert with check (auth.uid() = id);
+-- "approved" only: a pending join request lets the teacher see the request
+-- itself (listPendingMembers reads class_members directly), not the
+-- student's actual profile/attempts/mastery before they've accepted them.
 create policy "teacher reads class students" on profiles for select using (
   exists (
     select 1 from class_members cm join classes c on c.id = cm.class_id
-    where cm.student_id = profiles.id and c.teacher_id = auth.uid()
+    where cm.student_id = profiles.id and c.teacher_id = auth.uid() and cm.status = 'approved'
   )
 );
 
 -- attempts / mastery / diagnostics / goals / scans: owner only, teacher of their class can read
 create policy "own attempts" on attempts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "teacher reads student attempts" on attempts for select using (
-  exists (select 1 from class_members cm join classes c on c.id = cm.class_id where cm.student_id = attempts.user_id and c.teacher_id = auth.uid())
+  exists (select 1 from class_members cm join classes c on c.id = cm.class_id where cm.student_id = attempts.user_id and c.teacher_id = auth.uid() and cm.status = 'approved')
 );
 
 create policy "own mastery" on mastery for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "teacher reads student mastery" on mastery for select using (
-  exists (select 1 from class_members cm join classes c on c.id = cm.class_id where cm.student_id = mastery.user_id and c.teacher_id = auth.uid())
+  exists (select 1 from class_members cm join classes c on c.id = cm.class_id where cm.student_id = mastery.user_id and c.teacher_id = auth.uid() and cm.status = 'approved')
 );
 
 create policy "own diagnostics" on diagnostics for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -173,15 +178,28 @@ create policy "own scans" on scans for all using (auth.uid() = user_id) with che
 create policy "own ai_events" on ai_events for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- classes: teacher owns; students see classes they joined
-create policy "teacher manages classes" on classes for all using (auth.uid() = teacher_id) with check (auth.uid() = teacher_id);
-create policy "members read class" on classes for select using (
-  exists (select 1 from class_members cm where cm.class_id = classes.id and cm.student_id = auth.uid())
-);
+--
+-- classes and class_members each need to check the other table, which would
+-- normally cause "infinite recursion detected in policy" (each table's RLS
+-- re-triggers the other's). SECURITY DEFINER functions run as their owner,
+-- and table owners are exempt from RLS by default, so the lookup *inside*
+-- these functions doesn't re-trigger the policy it's called from — see
+-- fix_rls_recursion.sql for the same fix applied to an already-existing project.
+create or replace function is_class_teacher(target_class_id uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (select 1 from classes c where c.id = target_class_id and c.teacher_id = auth.uid());
+$$;
 
-create policy "teacher manages members" on class_members for all using (
-  exists (select 1 from classes c where c.id = class_members.class_id and c.teacher_id = auth.uid())
-) with check (
-  exists (select 1 from classes c where c.id = class_members.class_id and c.teacher_id = auth.uid())
-);
+create or replace function is_class_member(target_class_id uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (select 1 from class_members cm where cm.class_id = target_class_id and cm.student_id = auth.uid());
+$$;
+
+create policy "teacher manages classes" on classes for all using (auth.uid() = teacher_id) with check (auth.uid() = teacher_id);
+create policy "members read class" on classes for select using (is_class_member(classes.id));
+
+create policy "teacher manages members" on class_members for all
+  using (is_class_teacher(class_members.class_id))
+  with check (is_class_teacher(class_members.class_id));
 create policy "student joins class" on class_members for insert with check (auth.uid() = student_id);
 create policy "student reads own membership" on class_members for select using (auth.uid() = student_id);

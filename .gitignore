@@ -1,6 +1,7 @@
-# config.js is intentionally committed right now — it ships with FORCE_DEMO: true
-# and zero real secrets, so the deploy works with no Render build step at all.
-# If you ever put real Supabase/Gemini credentials in it again, re-add "config.js"
-# to this file BEFORE committing.
+# Secrets live in .env (never committed) and get compiled into config.js by
+# `node scripts/gen-config.mjs` — neither of those should ever reach git.
+# Commit .env.example instead so the required shape is documented.
+.env
+config.js
 .DS_Store
 *.log

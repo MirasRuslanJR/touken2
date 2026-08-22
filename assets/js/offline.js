@@ -2,7 +2,10 @@
 // The app must keep working with the network physically off; this is what makes that true.
 
 const DB_NAME = 'tamyr';
-const DB_VERSION = 1;
+// Bumped to 2 when data_cache was added — onupgradeneeded only fires on a
+// version increase, so anyone with an existing v1 database (from before this
+// pass) would silently never get the new store without this bump.
+const DB_VERSION = 2;
 let dbPromise = null;
 
 function openDb() {
@@ -13,7 +16,7 @@ function openDb() {
       const db = req.result;
       if (!db.objectStoreNames.contains('ai_cache')) db.createObjectStore('ai_cache');
       if (!db.objectStoreNames.contains('sync_queue')) db.createObjectStore('sync_queue', { keyPath: 'localId', autoIncrement: true });
-      if (!db.objectStoreNames.contains('tasks_cache')) db.createObjectStore('tasks_cache');
+      if (!db.objectStoreNames.contains('data_cache')) db.createObjectStore('data_cache');
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -39,14 +42,32 @@ export async function cacheSet(key, value) {
   } catch { /* cache is best-effort */ }
 }
 
-export async function cacheTasks(nodeId, tasks) {
-  try { (await tx('tasks_cache', 'readwrite')).put(tasks, nodeId); } catch {}
+// ---------- generic read-through cache for real-mode Supabase reads ----------
+// The real (non-demo) data path has no fallback of its own — a bare fetch
+// that just throws when offline. This makes db.js's real-mode reads resilient
+// the same way ai.js already is: try the network, and if that fails, serve
+// whatever was last cached instead of breaking the screen entirely.
+export async function cacheData(key, value) {
+  try { (await tx('data_cache', 'readwrite')).put(value, key); } catch {}
 }
-export async function getCachedTasks(nodeId) {
+export async function getCachedData(key) {
   try {
-    const store = await tx('tasks_cache', 'readonly');
-    return await new Promise((res) => { const r = store.get(nodeId); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); });
+    const store = await tx('data_cache', 'readonly');
+    return await new Promise((res) => { const r = store.get(key); r.onsuccess = () => res(r.result ?? null); r.onerror = () => res(null); });
   } catch { return null; }
+}
+/** Fetch fresh over the network and cache it; on failure (offline, timeout,
+ *  RLS hiccup) fall back to the last cached value for that key if there is one. */
+export async function readThrough(key, fetchFn) {
+  try {
+    const fresh = await fetchFn();
+    cacheData(key, fresh);
+    return fresh;
+  } catch (err) {
+    const cached = await getCachedData(key);
+    if (cached !== null) return cached;
+    throw err;
+  }
 }
 
 // ---------- sync queue ----------

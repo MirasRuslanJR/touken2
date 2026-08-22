@@ -31,8 +31,8 @@ if (!session?.user) {
 } else {
   let user = session.user;
   if (!isDemo()) {
-    const { supabase } = await import('./db.js');
-    const { data: profile } = await supabase().from('profiles').select('*').eq('id', user.id).single();
+    const { getOrCreateProfile } = await import('./db.js');
+    const profile = await getOrCreateProfile(user.id, user.email?.split('@')[0]);
     user = { ...user, ...profile };
   }
   store.set({ user });
@@ -42,13 +42,14 @@ if (!session?.user) {
 function navFor(role) {
   if (role === 'teacher') {
     return [
-      ['#/', 'home', t('nav_teacher')],
+      ['#/teacher', 'home', t('nav_teacher')],
       ['#/settings', 'settings', t('nav_settings')],
     ];
   }
   return [
     ['#/', 'home', t('nav_home')],
     ['#/module/math', 'graph', t('nav_modules')],
+    ['#/xray/last', 'bolt', t('nav_xray')],
     ['#/tutor', 'tutor', t('nav_tutor')],
     ['#/scan', 'scan', t('nav_scan')],
     ['#/settings', 'settings', t('nav_settings')],
@@ -61,12 +62,15 @@ function boot() {
   nav.innerHTML = navFor(role).map(([href, ic, label]) =>
     `<a href="${href}">${icon(ic)}<span>${label}</span></a>`).join('');
 
-  document.getElementById('btn-signout').addEventListener('click', async () => {
+  const signoutBtn = document.getElementById('btn-signout');
+  signoutBtn.innerHTML = `${icon('logout')}<span>${t('nav_signout')}</span>`;
+  signoutBtn.addEventListener('click', async () => {
     await signOut();
     location.href = 'index.html';
   });
 
   mountOfflineFlag();
+  mountAiMeter();
 
   registerRoute('/', renderDashboard);
   registerRoute('/onboarding', renderOnboarding);
@@ -89,6 +93,46 @@ function boot() {
   initRouter(document.getElementById('view-root'));
 }
 
+/**
+ * Shows how much of today's real-Gemini budget is left. On the free tier the
+ * per-day request cap is the single thing most likely to sink a live demo, so
+ * it belongs on screen rather than buried in devtools. Hidden entirely when the
+ * app isn't making real calls at all (demo login / FORCE_DEMO_AI), where a
+ * counter would just be noise.
+ */
+async function mountAiMeter() {
+  const { aiStatus } = await import('./ai.js');
+  const { CONFIG } = await import('../../config.js');
+  if (CONFIG.FORCE_DEMO_AI || (isDemo() && !CONFIG.GEMINI_API_KEY)) return;
+
+  const meter = document.createElement('div');
+  meter.className = 'ai-meter';
+  meter.id = 'ai-meter';
+  document.querySelector('.rail-foot').prepend(meter);
+
+  const update = () => {
+    const s = aiStatus();
+    // Three states, not two: plenty left, Gemini gone but a backup model still
+    // answering for real, and genuinely no live AI left.
+    meter.classList.toggle('low', !s.exhausted && s.left <= 5);
+    meter.classList.toggle('out', s.exhausted && !s.hasBackup);
+    const label = !s.exhausted ? `ИИ: осталось ${s.left}`
+      : s.hasBackup ? 'ИИ: запасная модель'
+      : 'ИИ: резерв';
+    meter.innerHTML = `<span class="dot"></span><span>${label}</span>`;
+    meter.title = !s.exhausted
+      ? `Осталось ${s.left} из ${s.budget} обращений к Gemini на сегодня. Повторные и закэшированные ответы лимит не тратят.`
+      : s.hasBackup
+        ? 'Дневной лимит Gemini исчерпан — запросы идут к запасной модели, ответы по-прежнему живые.'
+        : 'Дневной лимит Gemini исчерпан — функции отвечают заранее заготовленными ответами.';
+  };
+  update();
+  window.addEventListener('tamyr:ai-budget', update);
+  // Backstop for the date rolling over to a new day mid-session, which resets
+  // the budget without any call happening to fire the event.
+  setInterval(update, 30000);
+}
+
 function mountOfflineFlag() {
   const flag = document.createElement('div');
   flag.className = 'offline-flag';
@@ -98,7 +142,7 @@ function mountOfflineFlag() {
     const n = await queueLength();
     const on = navigator.onLine;
     flag.classList.toggle('on-line', on);
-    flag.innerHTML = `<span class="dot"></span>${on ? (n ? `онлайн · ${n} ждут отправки` : 'онлайн') : `офлайн${n ? ` · ${n} ответов ждут отправки` : ''}`}`;
+    flag.innerHTML = `<span class="dot"></span><span class="offline-text">${on ? (n ? `онлайн · ${n} ждут отправки` : 'онлайн') : `офлайн${n ? ` · ${n} ответов ждут отправки` : ''}`}</span>`;
   };
   window.addEventListener('online', update);
   window.addEventListener('offline', update);

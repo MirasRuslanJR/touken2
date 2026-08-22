@@ -23,6 +23,29 @@ export function openModal(contentHtml) {
   return { el: backdrop, close };
 }
 
+// Every AI panel says where its content actually came from. Partly honesty —
+// a pre-written fallback must never be passed off as a live model answer — and
+// partly diagnostics: when something looks generic, this tells you instantly
+// whether Gemini answered or the offline copy did.
+const SOURCE_LABEL = {
+  live: ['Gemini 3.5 Flash Lite', 'live'],
+  backup: ['резервная модель', 'live'],
+  cache: ['ИИ · из кэша', 'live'],
+  demo: ['демо-ответ', 'muted'],
+  offline: ['офлайн-ответ', 'muted'],
+  budget: ['дневной лимит ИИ исчерпан', 'warn'],
+  quota: ['квота Gemini исчерпана', 'warn'],
+  fallback: ['резервный ответ', 'warn'],
+};
+
+export function aiBadge(result) {
+  const entry = SOURCE_LABEL[result?.__source];
+  // Unknown provenance (e.g. a result restored from an older session) gets no
+  // badge at all — guessing a label would be worse than showing nothing.
+  if (!entry) return '';
+  return `<span class="ai-badge ${entry[1]}">${entry[0]}</span>`;
+}
+
 export function skeleton(height = 16, width = '100%') {
   const d = document.createElement('div');
   d.className = 'skel';
@@ -53,6 +76,8 @@ export function icon(name) {
     check: '<path d="M5 13l4 4L19 7"/>',
     x: '<path d="M6 6l12 12M18 6 6 18"/>',
     arrowRight: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    logout: '<path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M16 16l4-4-4-4M20 12H9"/>',
+    volume: '<path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M17 8a5 5 0 0 1 0 8M19.5 5.5a9 9 0 0 1 0 13"/>',
   };
   return `<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24">${paths[name] || ''}</svg></span>`;
 }

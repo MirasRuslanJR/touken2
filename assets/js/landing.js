@@ -10,8 +10,12 @@ const heroNodes = [
   { id: 'c', code: 'ALG-7-02', title: 'Скобки', grade: 2, order_index: 1 },
   { id: 'd', code: 'ALG-7-05', title: 'Степени', grade: 2, order_index: 2 },
   { id: 'e', code: 'ALG-8-01', title: 'Корень', grade: 2, order_index: 3 },
-  { id: 'f', code: 'ALG-9-01', title: 'Кв. уравнения', grade: 3, order_index: 1 },
-  { id: 'g', code: 'ALG-9-03', title: 'Парабола', grade: 3, order_index: 2 },
+  // f sits centered (order_index 2, not 1) on purpose: it's the row's hub —
+  // pulled from both c (left) and e (right) in the row above, plus linked to
+  // both g and h in its own row. Centering it turns four long diagonal edges
+  // into short, mostly-adjacent ones instead of one node doing full-width sweeps.
+  { id: 'g', code: 'ALG-9-03', title: 'Парабола', grade: 3, order_index: 1 },
+  { id: 'f', code: 'ALG-9-01', title: 'Кв. уравнения', grade: 3, order_index: 2 },
   { id: 'h', code: 'ALG-9-04', title: 'Степенные ур.', grade: 3, order_index: 3 },
 ];
 const heroEdges = [
@@ -45,13 +49,16 @@ function initHeroGraph() {
 initHeroGraph();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 
+// ?demo=1 has to travel with us to app.html explicitly — isDemo() there
+// depends on the URL alone once FORCE_DEMO is false, and a bare relative
+// navigation drops the query string signInDemo() just set on this page.
 document.getElementById('demo-student')?.addEventListener('click', async () => {
   await signInDemo('student');
-  location.href = 'app.html';
+  location.href = 'app.html?demo=1';
 });
 document.getElementById('demo-teacher')?.addEventListener('click', async () => {
   await signInDemo('teacher');
-  location.href = 'app.html';
+  location.href = 'app.html?demo=1';
 });
 
 document.getElementById('toggle-auth')?.addEventListener('click', (e) => {

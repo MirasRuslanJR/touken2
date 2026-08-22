@@ -1,7 +1,7 @@
 // views/diagnostic.js — adaptive diagnostic: 10-12 questions, walking the graph
 // down on failure, up on success, ending on the X-ray screen with the found root gap.
 import { listSubjects, listNodes, listEdges, listTasks, saveDiagnostic, upsertMastery, getMastery } from '../db.js';
-import { findRootGap } from '../graph.js';
+import { findRootGapPath } from '../graph.js';
 import { updateMastery } from '../mastery.js';
 import { store } from '../store.js';
 import { titleFor } from '../i18n.js';
@@ -102,12 +102,21 @@ export async function renderDiagnostic(root, { subject: slug }) {
   }
 
   async function finish() {
-    root.innerHTML = `<div class="quiz-wrap"><div class="empty"><h3>Собираем рентген…</h3><p>Ищем настоящую причину, а не последний неверный ответ.</p></div></div>`;
+    root.innerHTML = `<div class="quiz-wrap"><div class="empty"><div class="spinner"></div><h3 id="finish-status">Проверяем ответы…</h3><p>Ищем настоящую причину, а не последний неверный ответ.</p></div></div>`;
+    const stages = ['Проверяем ответы…', 'Спускаемся по графу знаний…', 'Ищем корень, а не симптом…', 'Формулируем объяснение…'];
+    let stageIdx = 0;
+    const statusEl = document.getElementById('finish-status');
+    const stageTimer = setInterval(() => {
+      stageIdx = (stageIdx + 1) % stages.length;
+      if (statusEl) statusEl.textContent = stages[stageIdx];
+    }, 2600);
 
     const masteryMap = new Map();
     path.forEach(p => masteryMap.set(p.nodeId, { score: p.correct ? 85 : 20, status: p.correct ? 'mastered' : 'gap' }));
     const lastWrong = [...path].reverse().find(p => !p.correct) || path[path.length - 1];
-    const rootId = lastWrong ? findRootGap(lastWrong.nodeId, edges, masteryMap) : path[0]?.nodeId;
+    const rootSearch = lastWrong ? findRootGapPath(lastWrong.nodeId, edges, masteryMap) : null;
+    const rootId = rootSearch ? rootSearch.root : path[0]?.nodeId;
+    const rootPath = rootSearch ? rootSearch.path : (rootId ? [rootId] : []);
     const rootNode = nodesById.get(rootId);
 
     const user = store.get().user;
@@ -121,20 +130,20 @@ export async function renderDiagnostic(root, { subject: slug }) {
     }
 
     const { callGemini } = await import('../ai.js');
-    let summary;
-    try {
-      summary = await callGemini('xray_summary', {
-        subject: subject.title_ru, root_title: titleFor(rootNode),
-        path: path.map(p => ({ node: titleFor(nodesById.get(p.nodeId)), correct: p.correct })),
-      });
-    } catch { summary = { headline: 'Корень найден', explanation: `Основная проблема — «${titleFor(rootNode)}».`, root_title: titleFor(rootNode) }; }
+    const summary = await callGemini('xray_summary', {
+      subject: subject.title_ru, root_title: titleFor(rootNode),
+      path: path.map(p => ({ node: titleFor(nodesById.get(p.nodeId)), correct: p.correct })),
+    });
 
     const diag = await saveDiagnostic({
       user_id: user.id, subject_id: subject.id,
       answers: path, root_node_id: rootId, summary: summary.explanation,
     });
 
-    sessionStorage.setItem('tamyr_last_xray', JSON.stringify({ subjectId: subject.id, rootId, summary, path }));
+    // __source is non-enumerable, so JSON.stringify would drop it — carry it
+    // across explicitly or the X-ray screen can't say where its text came from.
+    sessionStorage.setItem('tamyr_last_xray', JSON.stringify({ subjectId: subject.id, rootId, rootPath, summary, aiSource: summary.__source, path }));
+    clearInterval(stageTimer);
     location.hash = `#/xray/${diag.id}`;
   }
 

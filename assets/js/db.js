@@ -8,6 +8,7 @@
 // on a machine with no network. Keep this import dynamic.
 import { CONFIG } from '../../config.js';
 import { DEMO } from './demo-data.js';
+import { readThrough } from './offline.js';
 
 export const isDemo = () => new URLSearchParams(location.search).get('demo') === '1' || CONFIG.FORCE_DEMO;
 
@@ -45,8 +46,12 @@ export async function signInEmail(email, password) {
 export async function signUpEmail(email, password, profile) {
   const { data, error } = await (await supabase()).auth.signUp({ email, password });
   if (error) throw error;
-  if (data.user) {
-    await (await supabase()).from('profiles').insert({ id: data.user.id, role: 'student', full_name: profile.fullName || email.split('@')[0], grade: profile.grade || 9, lang: 'ru' });
+  // If email confirmation is required there's no session yet — auth.uid() is
+  // null and RLS rejects the insert regardless of what we send. In that case
+  // the profile gets created on first real login instead (see main.js).
+  if (data.session && data.user) {
+    const { error: profileError } = await (await supabase()).from('profiles').insert({ id: data.user.id, role: 'student', full_name: profile.fullName || email.split('@')[0], grade: profile.grade || 9, lang: 'ru' });
+    if (profileError) throw profileError;
   }
   return data;
 }
@@ -56,55 +61,104 @@ export async function signOut() {
   await (await supabase()).auth.signOut();
 }
 
-// ---------- reference data ----------
-export async function listSubjects() {
-  if (isDemo()) return DEMO.subjects;
-  const { data, error } = await (await supabase()).from('subjects').select('*');
+/**
+ * Fetch the caller's profile row, creating it if this is their first real
+ * login after confirming their email (signUpEmail can't create it at signup
+ * time — no session yet means auth.uid() is null and RLS rejects the insert).
+ * Cached read-through so a returning user can boot the app with no network.
+ */
+export async function getOrCreateProfile(userId, fallbackName) {
+  if (isDemo()) return DEMO.currentUser();
+  return readThrough(`profile:${userId}`, async () => {
+    const client = await supabase();
+    let { data: profile, error } = await client.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (error) throw error;
+    if (!profile) {
+      const { data: created, error: createErr } = await client.from('profiles')
+        .insert({ id: userId, role: 'student', full_name: fallbackName || 'Ученик', grade: 9, lang: 'ru' })
+        .select().single();
+      if (createErr) throw createErr;
+      profile = created;
+    }
+    return profile;
+  });
+}
+
+export async function updateProfile(userId, patch) {
+  if (isDemo()) return DEMO.updateProfile(userId, patch);
+  const { data, error } = await (await supabase()).from('profiles').update(patch).eq('id', userId).select().single();
   if (error) throw error;
   return data;
+}
+
+// ---------- reference data ----------
+// Reads below go through readThrough(): try the network, cache the result,
+// and on failure (offline, flaky connection) serve the last cached copy
+// instead of just throwing and leaving the screen blank. Reference data
+// barely changes, so a slightly stale cached copy is a fine trade for the
+// app actually working with no connection — the whole point of this pass.
+export async function listSubjects() {
+  if (isDemo()) return DEMO.subjects;
+  return readThrough('subjects', async () => {
+    const { data, error } = await (await supabase()).from('subjects').select('*');
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function listNodes(subjectId) {
   if (isDemo()) return DEMO.nodes.filter(n => n.subject_id === subjectId);
-  const { data, error } = await (await supabase()).from('nodes').select('*').eq('subject_id', subjectId).order('order_index');
-  if (error) throw error;
-  return data;
+  return readThrough(`nodes:${subjectId}`, async () => {
+    const { data, error } = await (await supabase()).from('nodes').select('*').eq('subject_id', subjectId).order('order_index');
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function listEdges(subjectId) {
   if (isDemo()) return DEMO.edges.filter(e => e.subject_id === subjectId);
-  const { data, error } = await (await supabase()).from('edges').select('*').eq('subject_id', subjectId);
-  if (error) throw error;
-  return data;
+  return readThrough(`edges:${subjectId}`, async () => {
+    const { data, error } = await (await supabase()).from('edges').select('*').eq('subject_id', subjectId);
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function getNodeByCode(code) {
   if (isDemo()) return DEMO.nodes.find(n => n.code === code);
-  const { data, error } = await (await supabase()).from('nodes').select('*').eq('code', code).maybeSingle();
-  if (error) throw error;
-  return data;
+  return readThrough(`node-by-code:${code}`, async () => {
+    const { data, error } = await (await supabase()).from('nodes').select('*').eq('code', code).maybeSingle();
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function getNode(nodeId) {
   if (isDemo()) return DEMO.nodes.find(n => n.id === nodeId);
-  const { data, error } = await (await supabase()).from('nodes').select('*').eq('id', nodeId).single();
-  if (error) throw error;
-  return data;
+  return readThrough(`node:${nodeId}`, async () => {
+    const { data, error } = await (await supabase()).from('nodes').select('*').eq('id', nodeId).single();
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function listTasks(nodeId) {
   if (isDemo()) return DEMO.tasks.filter(t => t.node_id === nodeId);
-  const { data, error } = await (await supabase()).from('tasks').select('*').eq('node_id', nodeId);
-  if (error) throw error;
-  return data;
+  return readThrough(`tasks:${nodeId}`, async () => {
+    const { data, error } = await (await supabase()).from('tasks').select('*').eq('node_id', nodeId);
+    if (error) throw error;
+    return data;
+  });
 }
 
 // ---------- mastery ----------
 export async function getMastery(userId) {
   if (isDemo()) return DEMO.mastery(userId);
-  const { data, error } = await (await supabase()).from('mastery').select('*').eq('user_id', userId);
-  if (error) throw error;
-  return data;
+  return readThrough(`mastery:${userId}`, async () => {
+    const { data, error } = await (await supabase()).from('mastery').select('*').eq('user_id', userId);
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function upsertMastery(userId, nodeId, patch) {
@@ -122,9 +176,11 @@ export async function recordAttempt(row) {
 
 export async function listAttempts(userId, limit = 50) {
   if (isDemo()) return DEMO.attempts(userId, limit);
-  const { data, error } = await (await supabase()).from('attempts').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit);
-  if (error) throw error;
-  return data;
+  return readThrough(`attempts:${userId}:${limit}`, async () => {
+    const { data, error } = await (await supabase()).from('attempts').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit);
+    if (error) throw error;
+    return data;
+  });
 }
 
 // ---------- diagnostics ----------
@@ -151,9 +207,11 @@ export async function saveGoal(row) {
 }
 export async function getGoal(userId) {
   if (isDemo()) return DEMO.getGoal(userId);
-  const { data, error } = await (await supabase()).from('goals').select('*').eq('user_id', userId).order('target_date').limit(1).maybeSingle();
-  if (error) throw error;
-  return data;
+  return readThrough(`goal:${userId}`, async () => {
+    const { data, error } = await (await supabase()).from('goals').select('*').eq('user_id', userId).order('target_date').limit(1).maybeSingle();
+    if (error) throw error;
+    return data;
+  });
 }
 
 // ---------- classes (teacher) ----------
@@ -164,9 +222,16 @@ export async function listClasses(teacherId) {
   return data;
 }
 
+export async function getClass(classId) {
+  if (isDemo()) return DEMO.classes().find(c => c.id === classId) || null;
+  const { data, error } = await (await supabase()).from('classes').select('*').eq('id', classId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function classRoster(classId) {
   if (isDemo()) return DEMO.roster(classId);
-  const { data, error } = await (await supabase()).from('class_members').select('student_id, profiles(*)').eq('class_id', classId);
+  const { data, error } = await (await supabase()).from('class_members').select('student_id, profiles(*)').eq('class_id', classId).eq('status', 'approved');
   if (error) throw error;
   return data;
 }
@@ -174,6 +239,61 @@ export async function classRoster(classId) {
 export async function createClass(row) {
   if (isDemo()) return DEMO.addClass(row);
   const { data, error } = await (await supabase()).from('classes').insert(row).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// ---------- join requests: student enters a class code -> teacher accepts/rejects ----------
+export async function findClassByJoinCode(code) {
+  if (isDemo()) return DEMO.findClassByJoinCode(code);
+  const { data, error } = await (await supabase()).from('classes').select('*').eq('join_code', code.trim().toUpperCase()).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/** Student side: ask to join a class. Lands as status='pending' until a teacher accepts it. */
+export async function requestJoinClass(classId, studentId) {
+  if (isDemo()) return DEMO.requestJoin(classId, studentId);
+  const { data, error } = await (await supabase()).from('class_members')
+    .upsert({ class_id: classId, student_id: studentId, status: 'pending' }, { onConflict: 'class_id,student_id', ignoreDuplicates: false })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+/** Teacher side: everyone waiting on a decision for one of their classes. */
+export async function listPendingMembers(classId) {
+  if (isDemo()) return DEMO.pendingFor(classId);
+  const { data, error } = await (await supabase()).from('class_members').select('student_id, profiles(*)').eq('class_id', classId).eq('status', 'pending');
+  if (error) throw error;
+  return data;
+}
+
+export async function setMembershipStatus(classId, studentId, status) {
+  if (isDemo()) return DEMO.setMembershipStatus(classId, studentId, status);
+  const { error } = await (await supabase()).from('class_members').update({ status }).eq('class_id', classId).eq('student_id', studentId);
+  if (error) throw error;
+}
+
+/** Student side: which classes have I asked to join, and are they approved yet? */
+export async function listMyMemberships(studentId) {
+  if (isDemo()) return DEMO.myMemberships(studentId);
+  const { data, error } = await (await supabase()).from('class_members').select('class_id, status, classes(*)').eq('student_id', studentId);
+  if (error) throw error;
+  return data;
+}
+
+// ---------- teacher-authored content (killer feature: "учитель-мультипликатор") ----------
+export async function createNode(row) {
+  if (isDemo()) return DEMO.addNode(row);
+  const { data, error } = await (await supabase()).from('nodes').insert(row).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function createTasks(rows) {
+  if (isDemo()) return DEMO.addTasks(rows);
+  const { data, error } = await (await supabase()).from('tasks').insert(rows).select();
   if (error) throw error;
   return data;
 }

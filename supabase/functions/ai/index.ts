@@ -3,7 +3,8 @@
 // and set the secret: supabase secrets set GEMINI_API_KEY=...
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
+// Overridable via `supabase secrets set GEMINI_MODEL=...` without a redeploy.
+const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') || 'gemini-3.5-flash-lite';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const SCHEMAS: Record<string, unknown> = {
@@ -33,17 +34,26 @@ const SYSTEM_PROMPTS: Record<string, string> = {
   explain_simpler: 'Объясни ту же идею проще: короче, на бытовом примере.',
 };
 
+const LANG_DIRECTIVE: Record<string, string> = {
+  ru: 'Отвечай на русском языке.',
+  kk: 'Жауапты қазақ тілінде бер. Барлық мәтін қазақша болуы керек.',
+  en: 'Answer in English. All text fields must be in English.',
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders() });
   }
   try {
-    const { feature, payload, images } = await req.json();
+    const { feature, payload, images, lang } = await req.json();
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) return json({ error: 'GEMINI_API_KEY not configured' }, 500);
     if (!SCHEMAS[feature]) return json({ error: 'unknown feature' }, 400);
 
-    const parts: unknown[] = [{ text: `${SYSTEM_PROMPTS[feature]}\n\nВходные данные:\n${JSON.stringify(payload)}` }];
+    // Mirrors ai.js: the UI can run in Russian, Kazakh or English, and the model
+    // has to be told which one, or a Kazakh screen fills up with Russian text.
+    const directive = LANG_DIRECTIVE[lang as string] || LANG_DIRECTIVE.ru;
+    const parts: unknown[] = [{ text: `${SYSTEM_PROMPTS[feature]}\n\n${directive}\n\nВходные данные:\n${JSON.stringify(payload)}` }];
     (images || []).forEach((img: { base64: string; mimeType?: string }) => {
       parts.push({ inline_data: { mime_type: img.mimeType || 'image/jpeg', data: img.base64 } });
     });
