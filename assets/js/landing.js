@@ -49,9 +49,19 @@ function initHeroGraph() {
 initHeroGraph();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 
-// ?demo=1 has to travel with us to app.html explicitly — isDemo() there
-// depends on the URL alone once FORCE_DEMO is false, and a bare relative
-// navigation drops the query string signInDemo() just set on this page.
+// This page is the login screen, so demo mode has no business being on it:
+// with ?demo=1 present isDemo() is true and the real email login refuses to
+// run. Strip it on sight — a restored tab, a shared link or a Back navigation
+// can all land here carrying the flag.
+if (new URLSearchParams(location.search).get('demo') === '1') {
+  const clean = new URL(location.href);
+  clean.searchParams.delete('demo');
+  history.replaceState(null, '', clean);
+}
+
+// ?demo=1 travels to app.html explicitly: once FORCE_DEMO is false, isDemo()
+// there depends on the URL alone, and a bare relative navigation carries
+// nothing over.
 document.getElementById('demo-student')?.addEventListener('click', async () => {
   await signInDemo('student');
   location.href = 'app.html?demo=1';

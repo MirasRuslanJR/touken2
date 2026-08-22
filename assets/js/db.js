@@ -31,9 +31,11 @@ export async function getSession() {
 
 export async function signInDemo(role) {
   DEMO.setRole(role);
-  const url = new URL(location.href);
-  url.searchParams.set('demo', '1');
-  history.replaceState(null, '', url);
+  // Deliberately does NOT stamp ?demo=1 onto the current URL. Its only caller
+  // is the landing page, which navigates to app.html?demo=1 itself — rewriting
+  // the landing entry left ?demo=1 in history, so pressing Back after a demo
+  // session returned to index.html?demo=1, where isDemo() is true and the real
+  // email login refuses to run.
   return DEMO.currentUser();
 }
 

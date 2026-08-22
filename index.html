@@ -27,6 +27,19 @@
     .lp-hero h1 { max-width: 12ch; }
     .lp-hero-graph { aspect-ratio: 4 / 3; }
   }
+  /* Value proposition band: personalisation, AI, access — stated in plain words
+     right under the hero, so what the platform offers is readable without
+     having to infer it from the root metaphor. */
+  .lp-value { padding: 30px 0 44px; }
+  .lp-value-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+  .lp-value-n {
+    font-family: var(--f-display); font-weight: 800; font-size: var(--t-18);
+    color: var(--root); margin-bottom: 8px;
+  }
+  .lp-value-grid p { color: var(--ink-soft); font-size: 14.5px; margin: 0; }
+  .lp-value-grid > div { padding-top: 14px; border-top: 2px solid var(--root-10); }
+  @media (max-width: 860px) { .lp-value-grid { grid-template-columns: 1fr; gap: 20px; } }
+
   .lp-section { padding: 56px 0; border-top: 1px solid var(--hairline); }
   .lp-section h2 { max-width: 26ch; margin-bottom: 14px; }
   .lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 32px; }
@@ -67,6 +80,25 @@
       </div>
     </div>
     <div class="graph-wrap lp-hero-graph" id="hero-graph" aria-label="Живая демонстрация графа знаний"></div>
+  </div>
+</section>
+
+<section class="lp-value">
+  <div class="container">
+    <div class="lp-value-grid">
+      <div>
+        <div class="lp-value-n">Персонализация</div>
+        <p>Свой маршрут для каждого ученика: диагностика находит личные пробелы, а сложность заданий подстраивается по ходу решения.</p>
+      </div>
+      <div>
+        <div class="lp-value-n">AI-поддержка</div>
+        <p>Восемь функций на Gemini: тьютор без готовых ответов, разбор фото тетради, проверка «понял или угадал», объяснение простыми словами.</p>
+      </div>
+      <div>
+        <div class="lp-value-n">Доступ без условий</div>
+        <p>Работает офлайн, на русском, казахском и английском, с режимами для дислексии, СДВГ и слабовидения.</p>
+      </div>
+    </div>
   </div>
 </section>
 
