@@ -1,7 +1,7 @@
 // views/tutor.js — Сократ: never gives the final answer, only guiding questions,
 // escalating through 5 levels. Refuses direct "just tell me" requests by design (see ai.js system prompt).
 import { getNode } from '../db.js';
-import { titleFor } from '../i18n.js';
+import { titleFor, t } from '../i18n.js';
 import { icon } from '../ui.js';
 
 export async function renderTutor(root, { nodeId }) {
@@ -11,17 +11,17 @@ export async function renderTutor(root, { nodeId }) {
 
   root.innerHTML = `
     <div class="topbar">
-      <div><div class="eyebrow">Сократ · тьютор</div><h1>${node ? titleFor(node) : 'Спроси, не застревая'}</h1></div>
+      <div><div class="eyebrow">${t('tut_eyebrow')}</div><h1>${node ? titleFor(node) : t('tut_title')}</h1></div>
     </div>
     <div class="tutor-stage">
       <div class="card card-pad" style="max-width:720px;width:100%;margin:0 auto">
         <div class="chat-log" id="chat-log">
-          <div class="bubble ai">Привет. Я не даю готовых решений — только вопросы, которые подводят тебя к ответу самому. С чем разбираемся?</div>
+          <div class="bubble ai">${t('tut_hello')}</div>
         </div>
         <div class="hint-ladder" id="hint-ladder">${Array.from({ length: 5 }, () => '<span></span>').join('')}</div>
         <div class="chat-input-row">
-          <input class="input" id="chat-input" placeholder="Напиши свой вопрос или ответ…">
-          <button class="btn btn-primary btn-icon" id="chat-send" aria-label="Отправить">${icon('arrowRight')}</button>
+          <input class="input" id="chat-input" placeholder="${t('tut_placeholder')}">
+          <button class="btn btn-primary btn-icon" id="chat-send" aria-label="${t('tut_send')}">${icon('arrowRight')}</button>
         </div>
       </div>
     </div>`;

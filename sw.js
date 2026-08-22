@@ -1,5 +1,10 @@
 // sw.js — precaches the app shell so ТАМЫР keeps working with the network off.
-const CACHE = 'tamyr-v1';
+//
+// BUMP THIS on every deploy that changes a shell file. `activate` deletes every
+// cache whose key differs, so a new name is what forces returning visitors off
+// the old copy. Leaving it alone means anyone who opened the site before keeps
+// being served the previous build forever, no matter what you ship.
+const CACHE = 'tamyr-v2';
 const SHELL = [
   './', './index.html', './app.html', './config.js', './manifest.webmanifest',
   './assets/css/tokens.css', './assets/css/base.css', './assets/css/components.css',
@@ -32,11 +37,27 @@ self.addEventListener('fetch', (event) => {
   // network-first for Supabase/Gemini calls (handled by ai.js/db.js fallbacks), cache-first for the app shell
   if (req.url.includes('supabase.co') || req.url.includes('generativelanguage.googleapis.com')) return;
 
-  event.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req).then((res) => {
-      const copy = res.clone();
-      caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+  // Stale-while-revalidate: answer instantly from cache (so offline and slow
+  // venue wifi both work), but always refresh the entry in the background. A
+  // pure cache-first shell can never self-heal — one stale file stays stale
+  // until the cache name changes. This way a reload is enough.
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const cached = await cache.match(req);
+
+    const fromNetwork = fetch(req).then((res) => {
+      if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
       return res;
-    }).catch(() => cached))
-  );
+    }).catch(() => null);
+
+    if (cached) {
+      event.waitUntil(fromNetwork); // keep the worker alive for the refresh
+      return cached;
+    }
+    // Never cached and the network is gone — respond properly instead of
+    // resolving with undefined, which would surface as a confusing TypeError.
+    return (await fromNetwork) || new Response('Офлайн', {
+      status: 503, statusText: 'Offline', headers: { 'content-type': 'text/plain; charset=utf-8' },
+    });
+  })());
 });

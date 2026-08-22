@@ -253,6 +253,10 @@ class DemoStore {
     return c;
   }
   roster() { return this.state.roster.map(s => ({ student_id: s.id, profiles: s })); }
+  findProfile(userId) {
+    return this.state.roster.find(s => s.id === userId)
+      || (this.currentUser().id === userId ? this.currentUser() : null);
+  }
   findClassByJoinCode(code) {
     return this.classes().find(c => c.join_code === code.trim().toUpperCase()) || null;
   }

@@ -33,13 +33,13 @@ export async function renderDashboard(root) {
 
   root.innerHTML = `
     <div class="topbar">
-      <div><div class="eyebrow">${t('dash_welcome')}</div><h1>${user.full_name || 'Ученик'}</h1></div>
+      <div><div class="eyebrow">${t('dash_welcome')}</div><h1>${user.full_name || t('student_fallback')}</h1></div>
       <a class="btn btn-primary" href="#/diagnostic/${math.slug}">${t('dash_take_diagnostic')}</a>
     </div>
     <div class="stat-row" style="margin-bottom:24px">
       <div class="card stat"><div class="num mono">${overall}%</div><div class="lbl">${t('dash_overall')}</div></div>
       <div class="card stat"><div class="num mono">${streak}</div><div class="lbl">${t('dash_streak')}</div></div>
-      <div class="card stat"><div class="num mono">${daysLeft ?? '—'}</div><div class="lbl">${goal?.title || t('dash_to_goal')}</div></div>
+      <div class="card stat"><div class="num mono">${daysLeft ?? '—'}</div><div class="lbl">${daysLeft != null ? `${t('dash_days')} · ` : ''}${goal?.title || t('dash_to_goal')}</div></div>
       <div class="card stat"><div class="num mono">${attempts.length}</div><div class="lbl">${t('dash_attempts')}</div></div>
     </div>
     <div class="grid-2" style="align-items:start">

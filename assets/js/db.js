@@ -84,6 +84,16 @@ export async function getOrCreateProfile(userId, fallbackName) {
   });
 }
 
+/** Read-only profile lookup — used by the teacher's single-student screen. */
+export async function getProfile(userId) {
+  if (isDemo()) return DEMO.findProfile(userId);
+  return readThrough(`profile-view:${userId}`, async () => {
+    const { data, error } = await (await supabase()).from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (error) throw error;
+    return data;
+  });
+}
+
 export async function updateProfile(userId, patch) {
   if (isDemo()) return DEMO.updateProfile(userId, patch);
   const { data, error } = await (await supabase()).from('profiles').update(patch).eq('id', userId).select().single();

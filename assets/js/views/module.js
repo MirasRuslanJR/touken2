@@ -1,7 +1,7 @@
 // views/module.js — subject browser: full interactive graph + topic list.
 import { listSubjects, listNodes, listEdges, getMastery } from '../db.js';
 import { renderGraph } from '../graph.js';
-import { titleFor } from '../i18n.js';
+import { titleFor, t } from '../i18n.js';
 import { store } from '../store.js';
 import { toast } from '../ui.js';
 
@@ -20,7 +20,7 @@ export async function renderModule(root, { slug }, query) {
   root.innerHTML = `
     <div class="topbar">
       <div>
-        <div class="eyebrow">Темы</div>
+        <div class="eyebrow">${t('nav_modules')}</div>
         <h1>${titleFor(subject)}</h1>
       </div>
       <div style="display:flex;gap:8px">
@@ -30,7 +30,7 @@ export async function renderModule(root, { slug }, query) {
     <div class="graph-wrap" id="mod-graph" style="margin-bottom:28px"></div>
     <div id="topic-groups"></div>
     <div style="margin-top:24px">
-      <a class="btn btn-primary" href="#/diagnostic/${subject.slug}">Пройти диагностику заново</a>
+      <a class="btn btn-primary" href="#/diagnostic/${subject.slug}">${t('mod_retake')}</a>
     </div>`;
 
   const graphData = { nodes, edges: edges.map(e => ({ from: e.prerequisite_node_id || e.from, to: e.dependent_node_id || e.to })), mastery: masteryMap };
@@ -45,7 +45,7 @@ export async function renderModule(root, { slug }, query) {
   const groups = document.getElementById('topic-groups');
   groups.innerHTML = [...byGrade.entries()].sort((a, b) => a[0] - b[0]).map(([grade, list]) => `
     <div style="margin-bottom:20px">
-      <div class="eyebrow">${grade} класс</div>
+      <div class="eyebrow">${grade} ${t('grade')}</div>
       <div class="grid-3">
         ${list.map(n => {
           const m = masteryMap.get(n.id);
@@ -57,7 +57,7 @@ export async function renderModule(root, { slug }, query) {
               <span class="mastery-dot ${status}"></span>
             </div>
             <strong style="color:var(--ink)">${titleFor(n)}</strong>
-            <span style="font-size:13px;color:var(--ink-soft)">${m ? `${m.score}% освоено` : 'ещё не начато'}</span>
+            <span style="font-size:13px;color:var(--ink-soft)">${m ? `${m.score}% ${t('mod_mastered')}` : t('mod_not_started')}</span>
           </a>`;
         }).join('')}
       </div>

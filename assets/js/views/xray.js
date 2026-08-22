@@ -2,7 +2,7 @@
 // pointing straight at the found root cause, and Gemini's human explanation.
 import { getDiagnostic, listNodes, listEdges, getMastery, listSubjects } from '../db.js';
 import { renderGraph } from '../graph.js';
-import { titleFor } from '../i18n.js';
+import { titleFor, t } from '../i18n.js';
 import { store } from '../store.js';
 import { speak } from '../a11y.js';
 import { icon, aiBadge } from '../ui.js';
@@ -22,11 +22,11 @@ export async function renderXray(root, { diagId }) {
   // so say that plainly instead of rendering an empty graph with no root.
   if (!subjectId || !rootId) {
     root.innerHTML = `
-      <div class="topbar"><div><div class="eyebrow">Рентген</div><h1>Сначала диагностика</h1></div></div>
+      <div class="topbar"><div><div class="eyebrow">${t('xray_title')}</div><h1>${t('xray_need_diag')}</h1></div></div>
       <div class="empty">
-        <h3>Рентген появится после диагностики</h3>
-        <p>Рентген показывает не ошибку, а её причину — тему, из-за которой всё посыпалось. Чтобы её найти, нужны твои ответы.</p>
-        <a class="btn btn-primary" href="#/diagnostic/math" style="margin-top:14px;display:inline-flex">Пройти диагностику</a>
+        <h3>${t('xray_need_diag_head')}</h3>
+        <p>${t('xray_need_diag_sub')}</p>
+        <a class="btn btn-primary" href="#/diagnostic/math" style="margin-top:14px;display:inline-flex">${t('dash_take_diagnostic')}</a>
       </div>`;
     return;
   }
@@ -47,27 +47,27 @@ export async function renderXray(root, { diagId }) {
   root.innerHTML = `
     <div class="topbar">
       <div>
-        <div class="eyebrow">Рентген</div>
-        <h1>${summary.headline || 'Корень найден'}</h1>
+        <div class="eyebrow">${t('xray_title')}</div>
+        <h1>${summary.headline || t('xray_root_found')}</h1>
       </div>
     </div>
     <div class="card card-pad" style="margin-bottom:20px;border-left:3px solid var(--gap)">
       <div style="display:flex;align-items:flex-start;gap:8px">
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-            <span class="pill pill-gap">Корневой узел · ${rootNode ? titleFor(rootNode) : '—'}</span>
+            <span class="pill pill-gap">${t('xray_root_node')} · ${rootNode ? titleFor(rootNode) : '—'}</span>
             ${aiBadge({ __source: cached.aiSource })}
           </div>
-          <p style="font-size:var(--t-18);line-height:1.6">${summary.explanation || 'Нашли, где всё сломалось.'}</p>
+          <p style="font-size:var(--t-18);line-height:1.6">${summary.explanation || t('xray_found')}</p>
         </div>
         ${('speechSynthesis' in window) ? `<button class="btn btn-ghost btn-icon btn-sm" id="speak-explanation" aria-label="Прочитать вслух">${icon('volume')}</button>` : ''}
       </div>
-      ${chainLabel ? `<p style="margin-top:10px;font-family:var(--f-mono);font-size:13px;color:var(--ink-soft)">Цепочка: ${chainLabel}</p>` : ''}
+      ${chainLabel ? `<p style="margin-top:10px;font-family:var(--f-mono);font-size:13px;color:var(--ink-soft)">${t('xray_chain')}: ${chainLabel}</p>` : ''}
     </div>
     <div class="graph-wrap" id="xray-graph"></div>
     <div style="display:flex;gap:12px;margin-top:20px">
-      <a class="btn btn-primary" href="#/task/${rootId}">Закрыть пробел</a>
-      <a class="btn btn-ghost" href="#/module/${subjectSlug}">Все темы</a>
+      <a class="btn btn-primary" href="#/task/${rootId}">${t('xray_close_gap')}</a>
+      <a class="btn btn-ghost" href="#/module/${subjectSlug}">${t('all_topics')}</a>
     </div>`;
   document.getElementById('speak-explanation')?.addEventListener('click', () => speak(summary.explanation || ''));
 

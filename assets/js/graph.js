@@ -2,7 +2,7 @@
 // No dependencies. Works on plain {id, code, grade} nodes (title_ru/kk/en, or a plain
 // `title` for lightweight fixtures — see titleFor) and {from, to} edges where `from`
 // is the prerequisite and `to` is the dependent.
-import { titleFor } from './i18n.js';
+import { titleFor, t } from './i18n.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -60,9 +60,23 @@ function computeWeights(nodes, edges) {
   return memo;
 }
 
-/** Layered layout: one layer per distinct grade, nodes spread evenly along x. */
-export function layoutGraph(nodes, edges, { width = 1000, height = 620 } = {}) {
-  const grades = [...new Set(nodes.map(n => n.grade))].sort((a, b) => a - b);
+/**
+ * Root-system layout. Two decisions carry the whole metaphor:
+ *
+ * 1. Depth is inverted relative to a normal dependency diagram. The newest
+ *    grade sits just under the soil line and every earlier grade hangs *below*
+ *    it, so the further back a topic was taught the deeper it is buried. That
+ *    is what makes "спускаемся вниз по графу к корню" a literal description of
+ *    what the user watches happen, instead of a metaphor fighting the picture.
+ *
+ * 2. Nodes are ordered by barycenter — each one drifts toward the average x of
+ *    the topics that grow out of it — so a root and its offshoots stay in one
+ *    bundle. Evenly spaced rows in fixed order read as an org chart; bundles
+ *    that fan out and rejoin read as a root system.
+ */
+export function layoutGraph(nodes, edges, { width = 1000, height = 620, soilY = 0 } = {}) {
+  // Descending: highest grade becomes layer 0, nearest the surface.
+  const grades = [...new Set(nodes.map(n => n.grade))].sort((a, b) => b - a);
   const layerOf = new Map(grades.map((g, i) => [g, i]));
   const byLayer = new Map();
   for (const n of nodes) {
@@ -70,23 +84,62 @@ export function layoutGraph(nodes, edges, { width = 1000, height = 620 } = {}) {
     if (!byLayer.has(l)) byLayer.set(l, []);
     byLayer.get(l).push(n);
   }
+
+  // Who grows out of whom: dependents live one layer *up* (shallower).
+  const dependentsOf = new Map();
+  edges.forEach(e => { if (!dependentsOf.has(e.from)) dependentsOf.set(e.from, []); dependentsOf.get(e.from).push(e.to); });
+
+  const layerKeys = [...byLayer.keys()].sort((a, b) => a - b);
+  layerKeys.forEach(l => byLayer.get(l).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)));
+
+  // Generous side padding: labels are centred under their node, so a node
+  // parked at the very edge gets its label clipped by the viewport.
+  const padX = 92;
+  const slotX = (list, i) => list.length > 1 ? padX + (i * (width - 2 * padX)) / (list.length - 1) : width / 2;
+
+  // Seed x from the initial order, then relax downward a few times so each
+  // deeper layer settles under the topics it feeds.
+  const xOf = new Map();
+  layerKeys.forEach(l => byLayer.get(l).forEach((n, i) => xOf.set(n.id, slotX(byLayer.get(l), i))));
+
+  for (let pass = 0; pass < 4; pass++) {
+    for (const l of layerKeys.slice(1)) {
+      const list = byLayer.get(l);
+      const pull = new Map();
+      for (const n of list) {
+        const deps = (dependentsOf.get(n.id) || []).filter(id => xOf.has(id));
+        if (deps.length) pull.set(n.id, deps.reduce((s, id) => s + xOf.get(id), 0) / deps.length);
+      }
+      // Only reorder — never free-place — so nodes keep even spacing and can't
+      // pile up on top of each other in a dense layer.
+      const ordered = [...list].sort((a, b) => (pull.get(a.id) ?? xOf.get(a.id)) - (pull.get(b.id) ?? xOf.get(b.id)));
+      byLayer.set(l, ordered);
+      ordered.forEach((n, i) => xOf.set(n.id, slotX(ordered, i)));
+    }
+  }
+
   const positions = new Map();
-  const padX = 60, padY = 56;
-  const layerCount = grades.length || 1;
-  for (const [layer, list] of byLayer) {
-    list.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-    const y = layerCount > 1 ? padY + (layer * (height - 2 * padY)) / (layerCount - 1) : height / 2;
-    // Available horizontal room per node in this row — used to size labels so
-    // neighbours in dense rows don't visually run into each other.
+  const layerCount = layerKeys.length || 1;
+  // The first layer needs real clearance below the soil, otherwise the fibers
+  // leaving the trunk have almost no vertical room and fan out as near-horizontal
+  // wires across the whole width instead of descending like roots.
+  const top = soilY + 132;
+  // Bottom clearance covers the deepest row's label *and* the legend chip that
+  // sits in the corner — without it they collide.
+  const usable = Math.max(120, height - top - 86);
+  for (const l of layerKeys) {
+    const list = byLayer.get(l);
+    const y = layerCount > 1 ? top + (l * usable) / (layerCount - 1) : top + usable / 2;
     const rowSpacing = list.length > 1 ? (width - 2 * padX) / (list.length - 1) : width - 2 * padX;
-    list.forEach((n, i) => {
-      const x = list.length > 1 ? padX + (i * (width - 2 * padX)) / (list.length - 1) : width / 2;
-      // A small deterministic vertical wobble per node so rows don't sit on a
-      // ruler-straight line — real roots never grow at a perfectly even depth.
-      // `layer` (not the wobbled y) is what edge-drawing uses to detect
-      // same-row connections, so this can't reintroduce lines-through-nodes.
-      const wobble = ((strHash(n.id) % 17) - 8) * 0.9;
-      positions.set(n.id, { x, y: y + wobble, rowSpacing, layer });
+    list.forEach((n) => {
+      // Deterministic wobble so a layer never sits on a ruler-straight line —
+      // real roots never grow at a perfectly even depth. `layer` (not the
+      // wobbled y) is what edge drawing uses, so this can't create lines
+      // running through nodes.
+      const h = strHash(n.id);
+      const wobbleY = ((h % 19) - 9) * 1.15;
+      const wobbleX = (((h >> 6) % 13) - 6) * 1.1;
+      positions.set(n.id, { x: xOf.get(n.id) + wobbleX, y: y + wobbleY, rowSpacing, layer: l });
     });
   }
   return positions;
@@ -105,20 +158,76 @@ export function renderGraph(container, data, opts = {}) {
   svg.appendChild(viewport);
   container.appendChild(svg);
 
-  const positions = layoutGraph(data.nodes, data.edges, { width, height });
+  const compactMode = !!opts.compact;
+  const soilY = compactMode ? 26 : 40;
+  const positions = layoutGraph(data.nodes, data.edges, { width, height, soilY });
   const statusOf = (id) => data.mastery?.get(id)?.status || 'unknown';
   const weights = computeWeights(data.nodes, data.edges);
   const maxWeight = Math.max(1, ...data.nodes.map(n => weights.get(n.id) || 0));
 
+  const soilLayer = el('g', { class: 'graph-soil-layer' });
+  const trunkLayer = el('g');
+  const hairLayer = el('g');
   const edgeLayer = el('g');
   const nodeLayer = el('g');
-  viewport.appendChild(edgeLayer);
-  viewport.appendChild(nodeLayer);
+  viewport.append(soilLayer, trunkLayer, hairLayer, edgeLayer, nodeLayer);
 
   // Same half-width curve nodes use for their own radius, just scaled down —
   // so a ribbon visually grows out of its node instead of meeting it at a
   // mismatched width.
   const halfWidthFor = (id) => 0.9 + ((weights.get(id) || 0) / maxWeight) * 5.6;
+
+  // ---- soil surface + trunk -------------------------------------------------
+  // Without these the picture is just a layered graph. A ground line with a
+  // stem breaking through it is the single element that makes everything
+  // hanging below it read as one root system rather than a network of dots.
+  const shallow = [...positions.entries()].filter(([, p]) => p.layer === 0).map(([, p]) => p);
+  const trunkX = shallow.length ? shallow.reduce((s, p) => s + p.x, 0) / shallow.length : width / 2;
+
+  soilLayer.append(
+    el('rect', { x: 0, y: 0, width, height: soilY, class: 'graph-sky' }),
+    el('path', {
+      // A softly undulating ground line, not a ruler edge.
+      d: `M 0 ${soilY} C ${width * 0.25} ${soilY - 6}, ${width * 0.55} ${soilY + 5}, ${width} ${soilY - 2} L ${width} 0 L 0 0 Z`,
+      class: 'graph-soil',
+    }),
+  );
+
+  if (!compactMode) {
+    const stemTop = Math.max(2, soilY - 34);
+    trunkLayer.append(
+      el('path', { d: taperedRibbon({ x: trunkX, y: stemTop }, { x: trunkX - 2, y: soilY }, { x: trunkX + 2, y: soilY + 20 }, { x: trunkX, y: soilY + 46 }, 3.5, 9), class: 'graph-trunk' }),
+      el('path', { d: `M ${trunkX} ${stemTop + 8} C ${trunkX - 16} ${stemTop - 2}, ${trunkX - 20} ${stemTop + 6}, ${trunkX - 9} ${stemTop + 12}`, class: 'graph-leaf' }),
+      el('path', { d: `M ${trunkX} ${stemTop + 12} C ${trunkX + 17} ${stemTop + 2}, ${trunkX + 21} ${stemTop + 10}, ${trunkX + 10} ${stemTop + 16}`, class: 'graph-leaf' }),
+    );
+  }
+
+  // Everything in the shallowest layer hangs off the trunk, so the system has
+  // one origin instead of a row of unconnected starting points.
+  shallow.forEach((p) => {
+    const seed = strHash(`trunk${p.x.toFixed(1)}`);
+    const base = { x: trunkX, y: soilY + (compactMode ? 12 : 46) };
+    const span = p.y - base.y;
+    // Leave the trunk going almost straight down and only swing outward in the
+    // lower half. Splitting sideways immediately is what made these read as
+    // cables strung across the picture rather than roots pushing into soil.
+    const c1 = { x: trunkX + ((seed % 9) - 4), y: base.y + span * 0.42 };
+    const c2 = { x: p.x + (trunkX - p.x) * 0.22, y: base.y + span * 0.78 };
+    trunkLayer.appendChild(el('path', {
+      d: taperedRibbon(base, c1, c2, { x: p.x, y: p.y }, compactMode ? 3 : 6, 2.4),
+      class: 'graph-edge graph-edge-trunk', style: '--edge-o:.55',
+    }));
+  });
+
+  // A real root is thickest where it leaves the trunk and thins as it drives
+  // deeper, so fiber width follows *depth*, not dependent-count. Importance
+  // still drives node size, which keeps the "many topics rest on this one"
+  // signal without inverting the shape of the plant.
+  const maxLayer = Math.max(1, ...[...positions.values()].map(p => p.layer));
+  const fiberWidth = (layer) => {
+    const nearSurface = 1 - layer / maxLayer;      // 1 at the trunk, 0 at the tips
+    return (compactMode ? 1.0 : 1.3) + nearSurface * (compactMode ? 3.0 : 4.6);
+  };
 
   const edgeEls = new Map();
   data.edges.forEach((e) => {
@@ -140,20 +249,64 @@ export function renderGraph(container, data, opts = {}) {
       const bow = Math.min(50, Math.abs(p2.x - p1.x) * 0.2) * bowVariance;
       c1y = p1.y + bow; c2y = p2.y + bow;
     } else {
-      const midVariance = ((Math.abs(seed) % 27) - 13); // ±13, breaks the flat symmetric midpoint
-      c1y = c2y = (p1.y + p2.y) / 2 + midVariance;
+      // Keep each end's x близко to its own node for the first stretch, so the
+      // fiber leaves vertically and only crosses sideways in the middle. A
+      // symmetric arc between two distant nodes sweeps horizontally across the
+      // whole picture and reads as cabling, not as a root.
+      const midVariance = ((Math.abs(seed) % 27) - 13);
+      const shallowFirst = p1.y < p2.y;
+      const near = shallowFirst ? p1.y : p2.y, far = shallowFirst ? p2.y : p1.y;
+      const a = near + (far - near) * 0.38 + midVariance;
+      const b = near + (far - near) * 0.68 + midVariance;
+      c1y = shallowFirst ? a : b;
+      c2y = shallowFirst ? b : a;
+      c1x = p1.x + (p2.x - p1.x) * 0.16 + jitter1 * 0.5;
+      c2x = p2.x + (p1.x - p2.x) * 0.16 + jitter2 * 0.5;
     }
-    const w1 = halfWidthFor(e.from), w2 = halfWidthFor(e.to);
+    // A fiber that reaches right across the picture is a real dependency, but
+    // at full weight a handful of them turn the whole root into spaghetti.
+    // Let long spans thin out and recede so the local bundles stay readable.
+    const span = Math.abs(p2.x - p1.x) / width;
+    const recede = 1 - Math.min(0.62, span * 0.85);
     const path = el('path', {
-      d: taperedRibbon(p1, { x: c1x, y: c1y }, { x: c2x, y: c2y }, p2, w1, w2),
+      d: taperedRibbon(p1, { x: c1x, y: c1y }, { x: c2x, y: c2y }, p2,
+        fiberWidth(p1.layer) * recede, fiberWidth(p2.layer) * recede),
       class: 'graph-edge',
-      style: `--edge-o:${(0.28 + importance * 0.5).toFixed(2)}`,
+      style: `--edge-o:${((0.3 + importance * 0.45) * recede).toFixed(2)}`,
     });
     edgeLayer.appendChild(path);
     edgeEls.set(`${e.from}>${e.to}`, path);
   });
 
-  const compact = !!opts.compact;
+  // ---- root hairs -----------------------------------------------------------
+  // Terminal nodes (nothing grows out of them) get two or three fine wisps
+  // trailing further down. They carry no data — they exist because a root tip
+  // that just stops dead reads as a diagram, and one that frays reads as alive.
+  if (!compactMode) {
+    const hasDependents = new Set(data.edges.map(e => e.from));
+    data.nodes.forEach((n) => {
+      const p = positions.get(n.id);
+      if (!p || hasDependents.has(n.id)) return;
+      const seed = strHash(`hair${n.id}`);
+      const count = 2 + (Math.abs(seed) % 2);
+      for (let i = 0; i < count; i++) {
+        const s = strHash(`${n.id}h${i}`);
+        const dir = (i % 2 === 0 ? 1 : -1);
+        const spread = 10 + (Math.abs(s) % 22);
+        const len = 18 + (Math.abs(s >> 3) % 26);
+        hairLayer.appendChild(el('path', {
+          d: taperedRibbon(
+            { x: p.x, y: p.y },
+            { x: p.x + dir * spread * 0.4, y: p.y + len * 0.45 },
+            { x: p.x + dir * spread, y: p.y + len * 0.8 },
+            { x: p.x + dir * spread * 1.25, y: p.y + len }, 1.6, 0.15),
+          class: 'graph-hair',
+        }));
+      }
+    });
+  }
+
+  const compact = compactMode;
   const nodeEls = new Map();
   data.nodes.forEach((n, i) => {
     const p = positions.get(n.id);
@@ -234,9 +387,9 @@ export function renderGraph(container, data, opts = {}) {
     const controls = document.createElement('div');
     controls.className = 'graph-controls';
     controls.innerHTML = `
-      <button type="button" data-act="in" aria-label="Приблизить">+</button>
-      <button type="button" data-act="out" aria-label="Отдалить">−</button>
-      <button type="button" data-act="reset" aria-label="Сбросить вид">⟲</button>`;
+      <button type="button" data-act="in" aria-label="${t('g_zoom_in')}">+</button>
+      <button type="button" data-act="out" aria-label="${t('g_zoom_out')}">−</button>
+      <button type="button" data-act="reset" aria-label="${t('g_reset')}">⟲</button>`;
     controls.addEventListener('click', (e) => {
       const act = e.target.closest('button')?.dataset.act;
       if (act === 'in') scale = Math.min(2.4, scale + 0.2);
@@ -248,10 +401,13 @@ export function renderGraph(container, data, opts = {}) {
 
     const legend = document.createElement('div');
     legend.className = 'graph-legend';
+    // The depth note is the one piece of the metaphor a picture can't state on
+    // its own: colour is obvious, "further down = taught earlier" is not.
     legend.innerHTML = `
-      <span><i style="background:var(--gap)"></i>пробел</span>
-      <span><i style="background:var(--steppe)"></i>в процессе</span>
-      <span><i style="background:var(--root-glow)"></i>освоено</span>`;
+      <span><i style="background:var(--gap)"></i>${t('g_gap')}</span>
+      <span><i style="background:var(--steppe)"></i>${t('g_learning')}</span>
+      <span><i style="background:var(--root-glow)"></i>${t('g_mastered')}</span>
+      <span class="graph-legend-depth">↓ ${t('g_depth')}</span>`;
     container.appendChild(legend);
   }
 

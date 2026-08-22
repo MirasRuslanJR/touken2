@@ -4,6 +4,10 @@
   height: 40px; padding: 0 18px; border-radius: var(--r-btn);
   border: 1px solid transparent; background: var(--ink); color: var(--paper-lift);
   font-weight: 600; font-size: var(--t-15); cursor: pointer;
+  /* Half the buttons in the app are <a href="#/…">, which inherit the global
+     link underline and end up looking like underlined text in a pill. */
+  text-decoration: none;
+  font-family: inherit; line-height: 1; white-space: nowrap;
   transition: transform var(--dur-fast) var(--ease-graph), background var(--dur-fast), box-shadow var(--dur-fast);
 }
 .btn:hover { transform: translateY(-1px); }
@@ -44,14 +48,23 @@
 .ai-badge.muted { background: var(--ink-06); color: var(--ink-soft); }
 
 /* ---- Sidebar AI budget meter ---- */
+/* Collapses with the rail exactly like .offline-flag: only the status dot
+   survives at 68px. Without this the label wraps onto three lines and the
+   chip balloons to double the height of everything around it. */
 .ai-meter {
   display: flex; align-items: center; gap: 7px;
-  padding: 6px 10px; margin-bottom: 8px;
+  height: 32px; padding: 0 10px;
   border-radius: var(--r-pill); background: var(--ink-06);
   font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft);
+  white-space: nowrap; overflow: hidden; flex-shrink: 0;
 }
 .ai-meter .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--root); flex-shrink: 0; }
+.ai-meter span:last-child { opacity: 0; transition: opacity var(--dur-fast) linear; }
+.rail:hover .ai-meter span:last-child,
+.rail.expanded .ai-meter span:last-child { opacity: 1; }
+.ai-meter.low { color: var(--steppe); background: var(--steppe-10); }
 .ai-meter.low .dot { background: var(--steppe); }
+.ai-meter.out { color: var(--gap); background: var(--gap-10); }
 .ai-meter.out .dot { background: var(--gap); }
 
 /* ---- Cards ---- */

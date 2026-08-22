@@ -1,6 +1,6 @@
 // views/teacher.js — teacher's landing: classes overview + create class + risk radar teaser.
 import { listClasses, listSubjects, createClass } from '../db.js';
-import { titleFor } from '../i18n.js';
+import { titleFor, t } from '../i18n.js';
 import { store } from '../store.js';
 import { openModal, toast, icon } from '../ui.js';
 
@@ -10,15 +10,15 @@ export async function renderTeacher(root) {
 
   root.innerHTML = `
     <div class="topbar">
-      <div><div class="eyebrow">Кабинет учителя</div><h1>Мои классы</h1></div>
-      <button class="btn btn-primary" id="new-class">Создать класс</button>
+      <div><div class="eyebrow">${t('t_eyebrow')}</div><h1>${t('t_my_classes')}</h1></div>
+      <button class="btn btn-primary" id="new-class">${t('t_new_class')}</button>
     </div>
     <div class="grid-3" id="class-grid">
       ${classes.map(c => `
         <a href="#/class/${c.id}" class="card card-pad" style="text-decoration:none;display:flex;flex-direction:column;gap:10px">
           <strong style="color:var(--ink);font-size:var(--t-18)">${c.title}</strong>
-          <span class="pill">Код: <span class="mono">${c.join_code}</span></span>
-        </a>`).join('') || `<div class="empty"><h3>Классов пока нет</h3><p>Создай первый класс — займёт 20 секунд.</p></div>`}
+          <span class="pill">${t('t_join_code')}: <span class="mono">${c.join_code}</span></span>
+        </a>`).join('') || `<div class="empty"><h3>${t('t_no_classes')}</h3><p>${t('t_no_classes_sub')}</p></div>`}
     </div>`;
 
   document.getElementById('new-class').addEventListener('click', () => {

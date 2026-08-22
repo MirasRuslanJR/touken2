@@ -1,6 +1,11 @@
 .graph-wrap {
   position: relative;
-  background: var(--void);
+  /* Earth, not a void: lighter just under the surface, deepening with depth,
+     so "further down = further back in the curriculum" is legible before a
+     single label is read. */
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(150, 108, 62, .20) 0%, rgba(150, 108, 62, 0) 62%),
+    linear-gradient(180deg, #1A211C 0%, #131A17 46%, #0C1211 100%);
   border-radius: var(--r-card);
   overflow: hidden;
   width: 100%;
@@ -8,6 +13,17 @@
   touch-action: none;
   cursor: grab;
 }
+
+/* ---- soil surface, trunk, root hairs ---- */
+.graph-sky { fill: rgba(226, 232, 228, .07); }
+.graph-soil { fill: rgba(122, 88, 52, .34); }
+.graph-trunk { fill: #8A6A46; }
+.graph-leaf { fill: none; stroke: var(--root-glow); stroke-width: 2; stroke-linecap: round; opacity: .85; }
+.graph-hair {
+  fill: rgba(196, 148, 90, .5);
+  pointer-events: none;
+}
+.graph-edge-trunk { fill: rgba(180, 136, 84, 1); }
 .graph-wrap:active { cursor: grabbing; }
 .graph-wrap.compact { aspect-ratio: 4 / 3; }
 
@@ -36,8 +52,10 @@
 @keyframes node-in { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
 
 .graph-node {
-  fill: #16221D;
-  stroke: rgba(220, 227, 223, .38);
+  /* Root nodules, not diagram dots: a warm earthy body with a soft rim rather
+     than a flat chip on a dark field. */
+  fill: #26301F;
+  stroke: rgba(214, 186, 140, .45);
   stroke-width: 1.5;
   transition: fill 480ms var(--ease-graph), stroke 480ms var(--ease-graph), r var(--dur-med) var(--ease-graph);
 }
@@ -94,12 +112,19 @@
 .graph-controls button:hover { background: rgba(255,255,255,.14); }
 
 .graph-legend {
-  position: absolute; left: 12px; bottom: 12px; display: flex; gap: 12px;
-  font-size: 11px; color: #C7D2CC; background: rgba(12,21,18,.5); padding: 6px 10px; border-radius: var(--r-pill);
+  position: absolute; left: 12px; bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap;
+  max-width: calc(100% - 70px);
+  font-size: 11px; color: #C7D2CC; background: rgba(12,21,18,.62); padding: 7px 11px; border-radius: 12px;
   backdrop-filter: blur(4px);
 }
 .graph-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .graph-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.graph-legend-depth {
+  color: #9DAAA3; border-left: 1px solid rgba(199,210,204,.22); padding-left: 12px;
+}
+@media (max-width: 640px) {
+  .graph-legend-depth { border-left: none; padding-left: 0; flex-basis: 100%; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .graph-node-group { animation: none; opacity: 1; }

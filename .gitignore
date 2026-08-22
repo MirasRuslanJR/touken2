@@ -5,3 +5,7 @@
 config.js
 .DS_Store
 *.log
+
+# Supabase CLI scratch state (project ref, cached version numbers). Written by
+# `supabase link`, machine-local, and meaningless to anyone else cloning this.
+supabase/.temp/

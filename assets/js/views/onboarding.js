@@ -68,14 +68,25 @@ export async function renderOnboarding(root) {
     const school = document.getElementById('school').value.trim();
     const classCode = document.getElementById('class-code').value.trim();
 
-    await saveGoal({
-      user_id: user.id, kind: state.goal,
-      title: GOALS.find(g => g.id === state.goal)?.label || 'Цель',
-      target_date: state.date || null, target_score: state.goal === 'ent' ? 100 : null,
-    });
+    try {
+      await saveGoal({
+        user_id: user.id, kind: state.goal,
+        title: GOALS.find(g => g.id === state.goal)?.label || 'Цель',
+        target_date: state.date || null, target_score: state.goal === 'ent' ? 100 : null,
+      });
+    } catch (err) {
+      // Losing the goal shouldn't strand the student on this screen with a dead
+      // button — the diagnostic is the point, and the goal can be set later.
+      toast('Цель не сохранилась, но продолжим', 'gap');
+    }
 
-    if (school) {
-      try { await updateProfile(user.id, { school }); store.set({ user: { ...user, school } }); } catch { /* non-critical */ }
+    // The grade picker above is the only place a student states their year, so
+    // it has to reach the profile — otherwise every screen keeps defaulting to 9.
+    const patch = {};
+    if (state.grade && state.grade !== user.grade) patch.grade = state.grade;
+    if (school) patch.school = school;
+    if (Object.keys(patch).length) {
+      try { await updateProfile(user.id, patch); store.set({ user: { ...user, ...patch } }); } catch { /* non-critical */ }
     }
 
     if (classCode) {

@@ -3,18 +3,33 @@
 // answers "did the class fail, or did one kid fail" at a glance.
 import { classRoster, listNodes, listSubjects, createNode, createTasks, getClass, listPendingMembers, setMembershipStatus } from '../db.js';
 import { riskScore } from '../mastery.js';
-import { titleFor } from '../i18n.js';
+import { titleFor, t } from '../i18n.js';
 import { openModal, toast, icon, aiBadge } from '../ui.js';
 
-// Derived from the student's own accuracy (+ small deterministic per-node jitter)
+/**
+ * Avalanche hash. The obvious `h = h * 31 + c` accumulator, taken mod a small
+ * number, maps near-identical strings to near-identical outputs — and node
+ * codes differ by one character (ALG-9-01, ALG-9-02…), so a whole heatmap row
+ * came out as 39, 40, 41, 42… Visibly generated. Mixing the bits properly is
+ * what makes neighbouring codes produce unrelated values.
+ */
+function mixHash(s) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  h ^= h >>> 15; h = Math.imul(h, 2246822507) >>> 0;
+  h ^= h >>> 13; h = Math.imul(h, 3266489909) >>> 0;
+  return (h ^= h >>> 16) >>> 0;
+}
+
+// Derived from the student's own accuracy (+ deterministic per-node spread)
 // rather than an independent hash, so the heatmap row never contradicts the
 // risk card shown for the same student further down the page.
 function seededHeat(student, nodeId) {
-  let h = 0;
-  const s = student.id + nodeId;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 1000;
-  const jitter = (h % 30) - 15;
-  return Math.max(2, Math.min(99, Math.round((student.accuracy ?? 50) + jitter)));
+  const spread = (mixHash(student.id + '|' + nodeId) % 37) - 18;
+  return Math.max(2, Math.min(99, Math.round((student.accuracy ?? 50) + spread)));
 }
 
 function heatColor(v) {
@@ -40,34 +55,34 @@ export async function renderClass(root, { id }) {
   root.innerHTML = `
     <div class="topbar">
       <div>
-        <div class="eyebrow">Класс</div>
-        <h1>${cls?.title || 'Класс'}</h1>
-        ${cls?.join_code ? `<span class="pill" style="margin-top:8px">Код для учеников: <span class="mono">${cls.join_code}</span></span>` : ''}
+        <div class="eyebrow">${t('t_class')}</div>
+        <h1>${cls?.title || t('t_class')}</h1>
+        ${cls?.join_code ? `<span class="pill" style="margin-top:8px">${t('t_join_code')}: <span class="mono">${cls.join_code}</span></span>` : ''}
       </div>
       <div style="display:flex;gap:10px">
-        <button class="btn btn-ghost" id="radar-btn">${icon('bolt')}Радар риска</button>
-        <button class="btn btn-primary" id="build-btn">Учитель-мультипликатор</button>
+        <button class="btn btn-ghost" id="radar-btn">${icon('bolt')}${t('t_radar')}</button>
+        <button class="btn btn-primary" id="build-btn">${t('t_builder')}</button>
       </div>
     </div>
 
     ${requests.length ? `
-    <h3 style="margin-bottom:12px">Заявки на вступление · ${requests.length}</h3>
+    <h3 style="margin-bottom:12px">${t('t_requests')} · ${requests.length}</h3>
     <div id="requests-grid" class="grid-3" style="margin-bottom:28px">
       ${requests.map(s => `
         <div class="card card-pad">
           <strong style="color:var(--ink)">${s.full_name}</strong>
-          <div style="font-size:13px;color:var(--ink-soft);margin-top:2px">${s.school || 'Школа не указана'} · ${s.grade || '—'} класс</div>
+          <div style="font-size:13px;color:var(--ink-soft);margin-top:2px">${s.school || t('t_no_school')} · ${s.grade || '—'} ${t('grade')}</div>
           <div style="display:flex;gap:8px;margin-top:12px">
-            <button class="btn btn-primary btn-sm" data-accept="${s.id}" style="flex:1">Принять</button>
-            <button class="btn btn-ghost btn-sm" data-reject="${s.id}" style="flex:1">Отклонить</button>
+            <button class="btn btn-primary btn-sm" data-accept="${s.id}" style="flex:1">${t('t_accept')}</button>
+            <button class="btn btn-ghost btn-sm" data-reject="${s.id}" style="flex:1">${t('t_reject')}</button>
           </div>
         </div>`).join('')}
     </div>` : ''}
 
-    <h3 style="margin-bottom:12px">Тепловая карта класса</h3>
+    <h3 style="margin-bottom:12px">${t('t_heatmap')}</h3>
     <div class="heatmap-scroll" style="margin-bottom:28px">
       <table class="heatmap">
-        <thead><tr><th>Ученик</th>${grade9.map(n => `<th class="mono">${n.code}</th>`).join('')}</tr></thead>
+        <thead><tr><th>${t('t_student')}</th>${grade9.map(n => `<th class="mono">${n.code}</th>`).join('')}</tr></thead>
         <tbody>
           ${students.map(s => `
             <tr>
@@ -78,7 +93,7 @@ export async function renderClass(root, { id }) {
       </table>
     </div>
 
-    <h3 style="margin-bottom:12px">Ученики</h3>
+    <h3 style="margin-bottom:12px">${t('t_students')}</h3>
     <div class="grid-3" id="roster-grid">
       ${students.map(s => {
         const risk = riskScore({ accuracyRecent: s.accuracy, accuracyPrior: s.accuracy + (s.trend === 'down' ? 25 : 0), daysSinceActive: s.lastActive, nightShare: s.trend === 'down' ? 0.4 : 0.1 });
@@ -87,7 +102,7 @@ export async function renderClass(root, { id }) {
           <span class="risk-badge ${risk}"></span>
           <div>
             <strong style="color:var(--ink)">${s.full_name}</strong>
-            <div style="font-size:13px;color:var(--ink-soft);margin-top:2px">${s.accuracy}% точность · ${s.trend === 'down' ? '↓ падает' : s.trend === 'up' ? '↑ растёт' : '→ стабильно'}</div>
+            <div style="font-size:13px;color:var(--ink-soft);margin-top:2px">${s.accuracy}% ${t('t_accuracy')} · ${s.trend === 'down' ? t('t_falling') : s.trend === 'up' ? t('t_rising') : t('t_stable')}</div>
           </div>
         </a>`;
       }).join('')}
