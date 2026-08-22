@@ -9,7 +9,7 @@ export const CONFIG = {
   FORCE_DEMO: false,
   FORCE_DEMO_AI: false,
   AI_DAILY_BUDGET: 200,
-  AI_FALLBACK_URL: '',
-  AI_FALLBACK_KEY: '',
-  AI_FALLBACK_MODEL: '',
+  AI_FALLBACK_URL: 'https://api.groq.com/openai/v1/chat/completions',
+  AI_FALLBACK_KEY: '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',
+  AI_FALLBACK_MODEL: 'openai/gpt-oss-120b',
 };

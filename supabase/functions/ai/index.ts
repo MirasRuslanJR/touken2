@@ -40,6 +40,39 @@ const LANG_DIRECTIVE: Record<string, string> = {
   en: 'Answer in English. All text fields must be in English.',
 };
 
+/**
+ * Backup provider, same idea as in ai.js: any OpenAI-compatible
+ * /chat/completions endpoint (Groq, OpenRouter, Cerebras…). Configured with
+ * `supabase secrets set AI_FALLBACK_URL=... AI_FALLBACK_KEY=... AI_FALLBACK_MODEL=...`.
+ * Skipped for image input — these text models are blind, and a confident wrong
+ * reading of a photo is worse than no reading.
+ */
+async function callBackup(feature: string, payload: unknown, directive: string) {
+  const url = Deno.env.get('AI_FALLBACK_URL');
+  const key = Deno.env.get('AI_FALLBACK_KEY');
+  const model = Deno.env.get('AI_FALLBACK_MODEL');
+  if (!url || !key || !model) return null;
+
+  const content = [
+    `${SYSTEM_PROMPTS[feature]}\n\n${directive}`,
+    'Верни СТРОГО валидный JSON по этой JSON Schema. Без markdown, без ```json, без пояснений — только сам объект.',
+    JSON.stringify(SCHEMAS[feature]),
+    `Входные данные:\n${JSON.stringify(payload)}`,
+  ].join('\n\n');
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
+    body: JSON.stringify({ model, messages: [{ role: 'user', content }], response_format: { type: 'json_object' }, temperature: 0.7 }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  let text = data.choices?.[0]?.message?.content;
+  if (!text) return null;
+  text = String(text).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  try { return JSON.parse(text); } catch { return null; }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders() });
@@ -53,6 +86,7 @@ serve(async (req) => {
     // Mirrors ai.js: the UI can run in Russian, Kazakh or English, and the model
     // has to be told which one, or a Kazakh screen fills up with Russian text.
     const directive = LANG_DIRECTIVE[lang as string] || LANG_DIRECTIVE.ru;
+    const hasImages = Array.isArray(images) && images.length > 0;
     const parts: unknown[] = [{ text: `${SYSTEM_PROMPTS[feature]}\n\n${directive}\n\nВходные данные:\n${JSON.stringify(payload)}` }];
     (images || []).forEach((img: { base64: string; mimeType?: string }) => {
       parts.push({ inline_data: { mime_type: img.mimeType || 'image/jpeg', data: img.base64 } });
@@ -66,10 +100,21 @@ serve(async (req) => {
         generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMAS[feature] },
       }),
     });
-    if (!geminiRes.ok) return json({ error: `gemini ${geminiRes.status}` }, 502);
-    const geminiJson = await geminiRes.json();
-    const text = geminiJson.candidates?.[0]?.content?.parts?.[0]?.text;
-    return json(JSON.parse(text));
+
+    if (geminiRes.ok) {
+      const geminiJson = await geminiRes.json();
+      const text = geminiJson.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) { try { return json(JSON.parse(text)); } catch { /* fall through to backup */ } }
+    }
+
+    // Gemini refused (quota) or returned nothing usable — try the backup model
+    // before giving up, so one provider's daily cap isn't a single point of
+    // failure for the public site either.
+    if (!hasImages) {
+      const backup = await callBackup(feature, payload, directive);
+      if (backup) return json(backup);
+    }
+    return json({ error: `gemini ${geminiRes.status}` }, 502);
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
