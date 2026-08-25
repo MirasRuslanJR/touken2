@@ -96,13 +96,25 @@ export async function renderClass(root, { id }) {
     <h3 style="margin-bottom:12px">${t('t_students')}</h3>
     <div class="grid-3" id="roster-grid">
       ${students.map(s => {
-        const risk = riskScore({ accuracyRecent: s.accuracy, accuracyPrior: s.accuracy + (s.trend === 'down' ? 25 : 0), daysSinceActive: s.lastActive, nightShare: s.trend === 'down' ? 0.4 : 0.1 });
+        // Behavioural metrics exist on the demo roster; a real `profiles` row
+        // has none of them. Printing them unguarded rendered "undefined%".
+        const hasMetrics = Number.isFinite(s.accuracy);
+        const risk = riskScore({
+          accuracyRecent: s.accuracy,
+          accuracyPrior: hasMetrics ? s.accuracy + (s.trend === 'down' ? 25 : 0) : undefined,
+          daysSinceActive: s.lastActive,
+          nightShare: s.trend === 'down' ? 0.4 : 0.1,
+        });
+        const trend = s.trend === 'down' ? t('t_falling') : s.trend === 'up' ? t('t_rising') : t('t_stable');
+        const meta = hasMetrics
+          ? `${s.accuracy}% ${t('t_accuracy')} · ${trend}`
+          : `${s.school || t('t_no_school')}`;
         return `
         <a href="#/student/${s.id}" class="risk-card" style="text-decoration:none">
           <span class="risk-badge ${risk}"></span>
           <div>
             <strong style="color:var(--ink)">${s.full_name}</strong>
-            <div style="font-size:13px;color:var(--ink-soft);margin-top:2px">${s.accuracy}% ${t('t_accuracy')} · ${s.trend === 'down' ? t('t_falling') : s.trend === 'up' ? t('t_rising') : t('t_stable')}</div>
+            <div style="font-size:13px;color:var(--ink-soft);margin-top:2px">${meta}</div>
           </div>
         </a>`;
       }).join('')}

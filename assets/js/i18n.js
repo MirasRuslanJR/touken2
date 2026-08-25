@@ -56,7 +56,7 @@ const dict = {
     g_depth: 'глубже — раньше по программе',
     g_zoom_in: 'Приблизить', g_zoom_out: 'Отдалить', g_reset: 'Сбросить вид',
     // module
-    mod_retake: 'Пройти диагностику заново', mod_mastered: 'освоено', mod_not_started: 'ещё не начато',
+    mod_retake: 'Пройти диагностику заново', mod_mastered: 'освоено', mod_not_started: 'ещё не начато', mod_soon: 'задания скоро',
     // tutor
     tut_eyebrow: 'Сократ · тьютор', tut_title: 'Спроси, не застревая',
     tut_hello: 'Привет. Я не даю готовых решений — только вопросы, которые подводят тебя к ответу самому. С чем разбираемся?',
@@ -110,7 +110,7 @@ const dict = {
     g_gap: 'олқылық', g_learning: 'үрдісте', g_mastered: 'меңгерілген',
     g_depth: 'тереңірек — бағдарламада ертерек',
     g_zoom_in: 'Жақындату', g_zoom_out: 'Алыстату', g_reset: 'Көріністі қалпына келтіру',
-    mod_retake: 'Диагностиканы қайта өту', mod_mastered: 'меңгерілген', mod_not_started: 'әлі басталмаған',
+    mod_retake: 'Диагностиканы қайта өту', mod_mastered: 'меңгерілген', mod_not_started: 'әлі басталмаған', mod_soon: 'тапсырмалар жақында',
     tut_eyebrow: 'Сократ · тәлімгер', tut_title: 'Тұрып қалмай сұра',
     tut_hello: 'Сәлем. Мен дайын шешім бермеймін — тек сені жауапқа өзің жетелейтін сұрақтар қоямын. Немен айналысамыз?',
     tut_placeholder: 'Сұрағыңды немесе жауабыңды жаз…', tut_send: 'Жіберу',
@@ -162,7 +162,7 @@ const dict = {
     g_gap: 'gap', g_learning: 'in progress', g_mastered: 'mastered',
     g_depth: 'deeper — taught earlier',
     g_zoom_in: 'Zoom in', g_zoom_out: 'Zoom out', g_reset: 'Reset view',
-    mod_retake: 'Retake the diagnostic', mod_mastered: 'mastered', mod_not_started: 'not started yet',
+    mod_retake: 'Retake the diagnostic', mod_mastered: 'mastered', mod_not_started: 'not started yet', mod_soon: 'tasks coming',
     tut_eyebrow: 'Socrates · tutor', tut_title: 'Ask without getting stuck',
     tut_hello: "Hi. I don't hand out solutions — only questions that lead you to the answer yourself. What are we working on?",
     tut_placeholder: 'Type your question or answer…', tut_send: 'Send',

@@ -27,6 +27,12 @@
   border-radius: var(--r-pill); font-size: var(--t-13); font-weight: 600;
   background: var(--ink-06); color: var(--ink-soft);
 }
+.pill-soon { background: var(--ink-06); color: var(--ink-soft); height: 22px; font-size: 12px; }
+/* Topics that are in the graph but have no questions seeded yet. Dimmed, not
+   hidden — the dependency is real even when the practice for it isn't ready. */
+.topic-card.is-soon { opacity: .62; }
+.topic-card.is-soon:hover { opacity: .85; }
+
 .pill-root { background: var(--root-10); color: var(--root); }
 .pill-gap { background: var(--gap-10); color: var(--gap); }
 .pill-steppe { background: var(--steppe-10); color: #8a6120; }

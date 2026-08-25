@@ -1,4 +1,6 @@
 // a11y.js — one-button accessibility modes, applied as body classes so CSS carries the rest.
+import { localeTag } from './i18n.js';
+
 const KEY = 'tamyr_a11y';
 
 export function getModes() { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
@@ -6,7 +8,9 @@ export function getModes() { try { return JSON.parse(localStorage.getItem(KEY)) 
 export function applyModes(modes) {
   document.body.classList.remove('a11y-dyslexia', 'a11y-adhd', 'a11y-lowvision');
   modes.forEach(m => document.body.classList.add(`a11y-${m}`));
-  localStorage.setItem(KEY, JSON.stringify(modes));
+  // Private-mode browsers throw on write. The mode is already applied to the
+  // DOM by this point, so failing to remember it must not break the toggle.
+  try { localStorage.setItem(KEY, JSON.stringify(modes)); } catch { /* not remembered */ }
 }
 
 export function toggleMode(mode) {
@@ -16,10 +20,15 @@ export function toggleMode(mode) {
   return next;
 }
 
-export function speak(text, lang = 'ru-RU') {
-  if (!('speechSynthesis' in window)) return;
+/**
+ * Reads text aloud in the interface language. The default used to be hardcoded
+ * ru-RU, so an English or Kazakh screen was read out by a Russian voice —
+ * neither caller passed a language.
+ */
+export function speak(text, lang) {
+  if (!('speechSynthesis' in window) || !text) return;
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang;
+  u.lang = lang || localeTag();
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
 }

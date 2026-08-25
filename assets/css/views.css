@@ -138,6 +138,9 @@
 .risk-badge.high { background: var(--gap); }
 .risk-badge.med { background: var(--steppe); }
 .risk-badge.low { background: var(--root); }
+/* No behavioural data yet — grey, not green. Claiming "low risk" about a
+   student we know nothing about would be a confident wrong answer. */
+.risk-badge.unknown { background: var(--ink-06); border: 1px solid var(--hairline); }
 
 /* ---- Onboarding ---- */
 .onboard-wrap { max-width: 560px; margin: 40px auto; }

@@ -1,5 +1,5 @@
 // views/module.js — subject browser: full interactive graph + topic list.
-import { listSubjects, listNodes, listEdges, getMastery } from '../db.js';
+import { listSubjects, listNodes, listEdges, getMastery, listNodeIdsWithTasks } from '../db.js';
 import { renderGraph } from '../graph.js';
 import { titleFor, t } from '../i18n.js';
 import { store } from '../store.js';
@@ -13,6 +13,7 @@ export async function renderModule(root, { slug }, query) {
   const user = store.get().user;
   const masteryRows = await getMastery(user.id);
   const masteryMap = new Map(masteryRows.map(m => [m.node_id, m]));
+  const withTasks = new Set(await listNodeIdsWithTasks().catch(() => []));
 
   const byGrade = new Map();
   nodes.forEach(n => { if (!byGrade.has(n.grade)) byGrade.set(n.grade, []); byGrade.get(n.grade).push(n); });
@@ -50,14 +51,20 @@ export async function renderModule(root, { slug }, query) {
         ${list.map(n => {
           const m = masteryMap.get(n.id);
           const status = m?.status || 'unknown';
+          // A topic with no questions behind it is still part of the graph —
+          // it just can't be practised yet. Say so on the card instead of
+          // letting the click land on an empty screen.
+          const ready = withTasks.has(n.id);
+          const meta = !ready ? `<span class="pill pill-soon">${t('mod_soon')}</span>`
+            : m ? `${m.score}% ${t('mod_mastered')}` : t('mod_not_started');
           return `
-          <a href="#/task/${n.id}" class="card card-pad" style="text-decoration:none;display:flex;flex-direction:column;gap:8px">
+          <a href="#/task/${n.id}" class="card card-pad topic-card${ready ? '' : ' is-soon'}" style="text-decoration:none;display:flex;flex-direction:column;gap:8px">
             <div style="display:flex;justify-content:space-between;align-items:center">
               <span class="mono" style="font-size:12px;color:var(--ink-soft)">${n.code}</span>
               <span class="mastery-dot ${status}"></span>
             </div>
             <strong style="color:var(--ink)">${titleFor(n)}</strong>
-            <span style="font-size:13px;color:var(--ink-soft)">${m ? `${m.score}% ${t('mod_mastered')}` : t('mod_not_started')}</span>
+            <span style="font-size:13px;color:var(--ink-soft)">${meta}</span>
           </a>`;
         }).join('')}
       </div>

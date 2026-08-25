@@ -88,7 +88,14 @@ export async function renderDiagnostic(root, { subject: slug }) {
     return String(given).trim().toLowerCase() === String(task.answer).trim().toLowerCase();
   }
 
+  let answering = false;
   async function answer(node, task, given) {
+    // Two fast taps on two different options used to record two answers for one
+    // question and skip a step of the walk.
+    if (answering) return;
+    answering = true;
+    root.querySelectorAll('.option, #submit').forEach(el => { el.disabled = true; });
+
     const correct = isCorrect(task, given);
     path.push({ nodeId: node.id, correct, taskId: task.id });
     toast(correct ? 'Верно' : 'Неверно, идём глубже', correct ? 'root' : 'gap');
@@ -98,7 +105,7 @@ export async function renderDiagnostic(root, { subject: slug }) {
     } else {
       current = pickNeighbor(prereqsOf.get(node.id), visited) || null;
     }
-    setTimeout(step, 350);
+    setTimeout(() => { answering = false; step(); }, 350);
   }
 
   async function finish() {

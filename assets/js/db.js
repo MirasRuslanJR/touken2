@@ -163,6 +163,20 @@ export async function listTasks(nodeId) {
   });
 }
 
+/**
+ * Which nodes actually have questions behind them. Only 17 of the 52 seeded
+ * topics carry tasks, so without this the topic list and the graph both lead
+ * into an empty screen two times out of three.
+ */
+export async function listNodeIdsWithTasks() {
+  if (isDemo()) return [...new Set(DEMO.tasks.map(t => t.node_id))];
+  return readThrough('nodes-with-tasks', async () => {
+    const { data, error } = await (await supabase()).from('tasks').select('node_id');
+    if (error) throw error;
+    return [...new Set(data.map(r => r.node_id))];
+  });
+}
+
 // ---------- mastery ----------
 export async function getMastery(userId) {
   if (isDemo()) return DEMO.mastery(userId);

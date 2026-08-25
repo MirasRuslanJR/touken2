@@ -71,10 +71,17 @@ export async function readThrough(key, fetchFn) {
 }
 
 // ---------- sync queue ----------
+/** @returns true if the answer was safely parked, false if storage refused it. */
 export async function queueAttempt(row) {
-  const store = await tx('sync_queue', 'readwrite');
-  store.add({ ...row, queuedAt: Date.now() });
-  notifyQueueChange();
+  // Callers use this as their last resort when the network already failed, so
+  // it must not throw on top of that — an unhandled rejection here left the
+  // answer silently doing nothing at all.
+  try {
+    const store = await tx('sync_queue', 'readwrite');
+    store.add({ ...row, queuedAt: Date.now() });
+    notifyQueueChange();
+    return true;
+  } catch { return false; }
 }
 
 export async function queueLength() {
@@ -85,8 +92,11 @@ export async function queueLength() {
 }
 
 export async function flushQueue(sendFn) {
-  const store = await tx('sync_queue', 'readwrite');
-  const all = await new Promise((res, rej) => { const r = store.getAll(); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  let all;
+  try {
+    const store = await tx('sync_queue', 'readwrite');
+    all = await new Promise((res) => { const r = store.getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); });
+  } catch { return; }
   for (const row of all) {
     try {
       await sendFn(row);
@@ -102,6 +112,7 @@ export function onQueueChange(fn) { listeners.add(fn); return () => listeners.de
 async function notifyQueueChange() { const n = await queueLength(); listeners.forEach(fn => fn(n)); }
 
 export function initOfflineSync(sendFn) {
-  window.addEventListener('online', () => flushQueue(sendFn));
-  if (navigator.onLine) flushQueue(sendFn);
+  const flush = () => { flushQueue(sendFn).catch(() => { /* retried on next online event */ }); };
+  window.addEventListener('online', flush);
+  if (navigator.onLine) flush();
 }

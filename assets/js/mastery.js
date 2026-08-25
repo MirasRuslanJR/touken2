@@ -58,9 +58,13 @@ export function subjectMasteryScore(masteryRows) {
 /** Priority-ranked weak spots for the student dashboard: lowest score first, gaps before learning. */
 export function rankWeakSpots(masteryRows, nodesById) {
   const rank = { gap: 0, learning: 1, unknown: 2, mastered: 3 };
+  // An unrecognised status used to make the comparator return NaN, which leaves
+  // the sort order undefined instead of just putting that row last.
+  const rankOf = (s) => rank[s] ?? 2;
+  const scoreOf = (v) => (Number.isFinite(v) ? v : 0);
   return masteryRows
     .filter(m => m.status !== 'mastered')
-    .sort((a, b) => (rank[a.status] - rank[b.status]) || (a.score - b.score))
+    .sort((a, b) => (rankOf(a.status) - rankOf(b.status)) || (scoreOf(a.score) - scoreOf(b.score)))
     .map(m => ({ ...m, node: nodesById.get(m.node_id) }));
 }
 
@@ -75,9 +79,17 @@ export function classHeatmap(students, masteryByStudent, nodeIds) {
 
 /** Risk score for the teacher radar: combines accuracy trend + inactivity. Higher = riskier. */
 export function riskScore({ accuracyRecent, accuracyPrior, daysSinceActive, nightShare }) {
-  const drop = Math.max(0, (accuracyPrior ?? accuracyRecent) - accuracyRecent);
-  const inactivity = Math.min(1, daysSinceActive / 10);
-  const night = nightShare ?? 0;
+  // Real profile rows carry none of these fields. Unguarded, every term became
+  // NaN, the comparisons below all failed, and the radar reported every single
+  // student as low risk — a silently wrong answer, which is worse than none.
+  const recent = Number.isFinite(accuracyRecent) ? accuracyRecent : null;
+  if (recent === null) return 'unknown';
+  const prior = Number.isFinite(accuracyPrior) ? accuracyPrior : recent;
+  const days = Number.isFinite(daysSinceActive) ? daysSinceActive : 0;
+  const night = Number.isFinite(nightShare) ? nightShare : 0;
+
+  const drop = Math.max(0, prior - recent);
+  const inactivity = Math.min(1, Math.max(0, days) / 10);
   const score = drop * 0.6 + inactivity * 30 + night * 15;
   if (score >= 28) return 'high';
   if (score >= 12) return 'med';
