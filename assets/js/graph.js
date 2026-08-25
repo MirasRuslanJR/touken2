@@ -74,7 +74,7 @@ function computeWeights(nodes, edges) {
  *    bundle. Evenly spaced rows in fixed order read as an org chart; bundles
  *    that fan out and rejoin read as a root system.
  */
-export function layoutGraph(nodes, edges, { width = 1000, height = 620, soilY = 0 } = {}) {
+export function layoutGraph(nodes, edges, { width = 1000, height = 620, soilY = 0, narrow = false } = {}) {
   // Descending: highest grade becomes layer 0, nearest the surface.
   const grades = [...new Set(nodes.map(n => n.grade))].sort((a, b) => b - a);
   const layerOf = new Map(grades.map((g, i) => [g, i]));
@@ -124,14 +124,14 @@ export function layoutGraph(nodes, edges, { width = 1000, height = 620, soilY = 
   // leaving the trunk have almost no vertical room and fan out as near-horizontal
   // wires across the whole width instead of descending like roots.
   const top = soilY + 132;
-  // Bottom clearance covers the deepest row's label *and* the legend chip that
-  // sits in the corner — without it they collide.
-  const usable = Math.max(120, height - top - 86);
+  // Bottom clearance covers the deepest row's labels *and* the legend chip in
+  // the corner. Narrow screens stack labels on three lines, so they need more.
+  const usable = Math.max(120, height - top - (narrow ? 165 : 86));
   for (const l of layerKeys) {
     const list = byLayer.get(l);
     const y = layerCount > 1 ? top + (l * usable) / (layerCount - 1) : top + usable / 2;
     const rowSpacing = list.length > 1 ? (width - 2 * padX) / (list.length - 1) : width - 2 * padX;
-    list.forEach((n) => {
+    list.forEach((n, idx) => {
       // Deterministic wobble so a layer never sits on a ruler-straight line —
       // real roots never grow at a perfectly even depth. `layer` (not the
       // wobbled y) is what edge drawing uses, so this can't create lines
@@ -139,7 +139,9 @@ export function layoutGraph(nodes, edges, { width = 1000, height = 620, soilY = 
       const h = strHash(n.id);
       const wobbleY = ((h % 19) - 9) * 1.15;
       const wobbleX = (((h >> 6) % 13) - 6) * 1.1;
-      positions.set(n.id, { x: xOf.get(n.id) + wobbleX, y: y + wobbleY, rowSpacing, layer: l });
+      // idx = position within its own row; label placement uses it to stagger
+      // neighbours so their text doesn't collide on a narrow screen.
+      positions.set(n.id, { x: xOf.get(n.id) + wobbleX, y: y + wobbleY, rowSpacing, layer: l, idx });
     });
   }
   return positions;
@@ -152,7 +154,14 @@ export function layoutGraph(nodes, edges, { width = 1000, height = 620, soilY = 
  */
 export function renderGraph(container, data, opts = {}) {
   container.innerHTML = '';
-  const width = opts.width || 1000, height = opts.height || 620;
+  // The SVG scales its whole viewBox down to the container width, and text
+  // scales with it. On a 390px phone a 1000-unit viewBox shrinks by ~0.36, so
+  // a 9px label lands on screen at 3px — present but unreadable. Narrow the
+  // viewBox on small screens and size the type from the measured scale below.
+  const boxW = container.clientWidth || 900;
+  const narrow = boxW < 560;
+  const width = opts.width || (narrow ? 640 : 1000);
+  const height = opts.height || 620;
   const svg = el('svg', { viewBox: `0 0 ${width} ${height}` });
   const viewport = el('g', { class: 'graph-viewport' });
   svg.appendChild(viewport);
@@ -160,7 +169,7 @@ export function renderGraph(container, data, opts = {}) {
 
   const compactMode = !!opts.compact;
   const soilY = compactMode ? 26 : 40;
-  const positions = layoutGraph(data.nodes, data.edges, { width, height, soilY });
+  const positions = layoutGraph(data.nodes, data.edges, { width, height, soilY, narrow });
   const statusOf = (id) => data.mastery?.get(id)?.status || 'unknown';
   const weights = computeWeights(data.nodes, data.edges);
   const maxWeight = Math.max(1, ...data.nodes.map(n => weights.get(n.id) || 0));
@@ -306,8 +315,17 @@ export function renderGraph(container, data, opts = {}) {
     });
   }
 
+  // Size labels from how much the viewBox is actually being squeezed, so text
+  // lands at a readable pixel size on any screen instead of a fixed SVG size
+  // that only happens to work at desktop width.
+  const dispScale = Math.max(0.15, boxW / width);
+  const labelPx = Math.min(24, Math.max(9, Math.round(10.5 / dispScale)));
+  svg.style.setProperty('--graph-label-size', `${labelPx}px`);
+  svg.style.setProperty('--graph-code-size', `${Math.max(8, Math.round(labelPx * 0.8))}px`);
+
   const compact = compactMode;
   const nodeEls = new Map();
+  const labelEls = [];
   data.nodes.forEach((n, i) => {
     const p = positions.get(n.id);
     if (!p) return;
@@ -326,20 +344,42 @@ export function renderGraph(container, data, opts = {}) {
     const circle = el('circle', { cx: p.x, cy: p.y, r, class: `graph-node ${status}` });
     g.append(tip, glow, circle);
     if (!compact) {
-      const code = el('text', { x: p.x, y: p.y - r - 6, class: 'graph-code' });
-      code.textContent = n.code;
-      const label = el('text', { x: p.x, y: p.y + r + 15, class: 'graph-label' });
-      // Budget the label to the room actually available in its row so dense
-      // rows don't render neighbouring labels running into one another.
-      const maxChars = Math.max(6, Math.min(22, Math.round((p.rowSpacing || 90) / 6.2)));
+      // Spread a row's labels over three lines on a phone. Each line then only
+      // has to clear every third neighbour, which triples the horizontal room —
+      // without it a row of eight collapses into "Квадратные уТеорКвадрат…".
+      const lvl = narrow ? (p.idx % 3) : 0;
+      const dy = labelPx * (1.35 + lvl * 1.2);
+      if (!narrow) {
+        const code = el('text', { x: p.x, y: p.y - r - labelPx * 0.6, class: 'graph-code' });
+        code.textContent = n.code;
+        g.append(code);
+      }
+      const room = (p.rowSpacing || 90) * (narrow ? 2.9 : 1);
+      const maxChars = Math.max(7, Math.min(22, Math.round(room / (labelPx * 0.58))));
+      const label = el('text', { x: p.x, y: p.y + r + dy, class: 'graph-label' });
       label.textContent = title.length > maxChars ? title.slice(0, maxChars - 1) + '…' : title;
-      g.append(code, label);
+      g.append(label);
+      labelEls.push(label);
     }
     const activate = () => opts.onNodeClick && opts.onNodeClick(n.id);
     g.addEventListener('click', activate);
     g.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); activate(); } });
     nodeLayer.appendChild(g);
     nodeEls.set(n.id, { g, circle, x: p.x, y: p.y });
+  });
+
+  // Labels are centre-anchored, so one on an outermost node hangs half its
+  // width past the edge of the viewBox and loses its first letters. Measure the
+  // text that actually rendered — an estimate from character count is wrong
+  // often enough to still clip — and nudge it back inside.
+  labelEls.forEach((label) => {
+    let w = 0;
+    try { w = label.getBBox().width; } catch { return; }
+    if (!w) return;
+    const half = w / 2;
+    const x = Number(label.getAttribute('x'));
+    const clamped = Math.min(width - 4 - half, Math.max(4 + half, x));
+    if (clamped !== x) label.setAttribute('x', clamped);
   });
 
   // Trace the actual chain the root-cause search walked, root -> symptom, so

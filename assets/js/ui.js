@@ -71,6 +71,7 @@ export function icon(name) {
     teacher: '<path d="M3 9 12 4l9 5-9 5-9-5Z"/><path d="M7 12v5c0 1.5 2 3 5 3s5-1.5 5-3v-5"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.6l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.8-1.6L13.3 2h-2.6l-.4 2.8a7 7 0 0 0-2.8 1.6l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .5.1 1.1.2 1.6l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.8 1.6l.4 2.8h2.6l.4-2.8a7 7 0 0 0 2.8-1.6l2.3.9 2-3.4-2-1.5c.1-.5.2-1.1.2-1.6Z"/>',
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    feynman: '<rect x="9" y="3" width="6" height="10" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/><path d="M19.5 4.5l1.2 1.2M21 3.2h.01M18.4 2.6h.01"/>',
     camera: '<path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z"/><circle cx="12" cy="13" r="3.5"/>',
     bolt: '<path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/>',
     check: '<path d="M5 13l4 4L19 7"/>',

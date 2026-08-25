@@ -1,4 +1,4 @@
-// i18n.js — RU / KK / EN dictionaries. AI-facing text picks the same lang code
+﻿// i18n.js — RU / KK / EN dictionaries. AI-facing text picks the same lang code
 // and is passed to Gemini so explanations come back in the right language too.
 //
 // Keys are grouped by screen. Every user-visible string that a judge or a
@@ -11,7 +11,7 @@ const dict = {
     tagline: 'Находим корень, а не симптом',
     // nav
     nav_home: 'Дашборд', nav_graph: 'Граф знаний', nav_modules: 'Темы', nav_tutor: 'Сократ',
-    nav_scan: 'Скан тетради', nav_xray: 'Рентген', nav_settings: 'Настройки', nav_teacher: 'Класс',
+    nav_scan: 'Скан', nav_xray: 'Рентген', nav_settings: 'Настройки', nav_teacher: 'Класс',
     nav_signout: 'Выйти',
     // common
     cta_start: 'Начать диагностику', cta_teacher_login: 'Войти как учитель',
@@ -41,6 +41,11 @@ const dict = {
     // feynman
     feynman_mode: 'Режим Фейнмана', feynman_explain: 'Объясни',
     feynman_speak: 'Говорить', feynman_stop: 'Остановить', feynman_analyze: 'Проверить понимание',
+    nav_feynman: 'Фейнман',
+    feynman_pick_title: 'Какую тему объяснишь?',
+    feynman_pick_sub: 'Расскажи тему своими словами — вслух или текстом. ИИ сравнит объяснение с ключевыми понятиями и честно покажет, что понято, а где пробел.',
+    feynman_pick_weak: 'Начни с этих — здесь тоньше всего',
+    feynman_pick_all: 'Все темы',
     // settings
     set_title: 'Настройки', set_profile: 'Профиль', set_school_class: 'Школа и класс',
     set_school: 'Школа', set_class_code: 'Код класса от учителя', set_save: 'Сохранить',
@@ -68,7 +73,7 @@ const dict = {
   kk: {
     tagline: 'Симптомды емес, тамырды табамыз',
     nav_home: 'Тақта', nav_graph: 'Білім графигі', nav_modules: 'Тақырыптар', nav_tutor: 'Сократ',
-    nav_scan: 'Дәптер сканері', nav_xray: 'Рентген', nav_settings: 'Баптаулар', nav_teacher: 'Сынып',
+    nav_scan: 'Сканер', nav_xray: 'Рентген', nav_settings: 'Баптаулар', nav_teacher: 'Сынып',
     nav_signout: 'Шығу',
     cta_start: 'Диагностиканы бастау', cta_teacher_login: 'Мұғалім ретінде кіру',
     empty_tasks: 'Әзірге тапсырма жоқ — басқа тақырыпты қара.',
@@ -93,6 +98,11 @@ const dict = {
     task_ask_socrates: 'Сократтан сұрау', task_explain_own: 'Өз сөзіңмен түсіндір',
     feynman_mode: 'Фейнман режимі', feynman_explain: 'Түсіндір',
     feynman_speak: 'Сөйлеу', feynman_stop: 'Тоқтату', feynman_analyze: 'Түсінікті тексеру',
+    nav_feynman: 'Фейнман',
+    feynman_pick_title: 'Қай тақырыпты түсіндіресің?',
+    feynman_pick_sub: 'Тақырыпты өз сөзіңмен айт — дауыстап немесе жазып. ЖИ түсіндірмеңді негізгі ұғымдармен салыстырып, не түсінікті, ал қай жерде олқылық бар екенін адал көрсетеді.',
+    feynman_pick_weak: 'Осылардан баста — мұнда ең әлсіз',
+    feynman_pick_all: 'Барлық тақырыптар',
     set_title: 'Баптаулар', set_profile: 'Профиль', set_school_class: 'Мектеп және сынып',
     set_school: 'Мектеп', set_class_code: 'Мұғалімнен алынған сынып коды', set_save: 'Сақтау',
     set_lang: 'Интерфейс тілі', set_a11y: 'Қолжетімділік режимдері', set_signout: 'Аккаунттан шығу',
@@ -115,7 +125,7 @@ const dict = {
   en: {
     tagline: 'Finding the root, not the symptom',
     nav_home: 'Dashboard', nav_graph: 'Knowledge graph', nav_modules: 'Topics', nav_tutor: 'Socrates',
-    nav_scan: 'Notebook scan', nav_xray: 'X-ray', nav_settings: 'Settings', nav_teacher: 'Class',
+    nav_scan: 'Scan', nav_xray: 'X-ray', nav_settings: 'Settings', nav_teacher: 'Class',
     nav_signout: 'Sign out',
     cta_start: 'Start diagnostic', cta_teacher_login: 'Log in as teacher',
     empty_tasks: 'No tasks here yet — try another topic.',
@@ -140,6 +150,11 @@ const dict = {
     task_ask_socrates: 'Ask Socrates', task_explain_own: 'Explain in your own words',
     feynman_mode: 'Feynman mode', feynman_explain: 'Explain',
     feynman_speak: 'Speak', feynman_stop: 'Stop', feynman_analyze: 'Check my understanding',
+    nav_feynman: 'Feynman',
+    feynman_pick_title: 'Which topic will you explain?',
+    feynman_pick_sub: 'Say the topic in your own words — out loud or typed. The AI compares it against the key ideas and shows honestly what landed and where the gap is.',
+    feynman_pick_weak: 'Start here — this is the thinnest',
+    feynman_pick_all: 'All topics',
     set_title: 'Settings', set_profile: 'Profile', set_school_class: 'School and class',
     set_school: 'School', set_class_code: 'Class code from your teacher', set_save: 'Save',
     set_lang: 'Interface language', set_a11y: 'Accessibility modes', set_signout: 'Sign out',

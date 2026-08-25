@@ -84,12 +84,16 @@
   100% { opacity: 0; r: 34; stroke-width: 0; }
 }
 
+/* Sizes come from graph.js, which measures how far the viewBox is being scaled
+   down and picks a value that lands readable on screen — a fixed SVG font size
+   renders at ~3px on a phone. */
 .graph-label {
-  fill: #C7D2CC; font-family: var(--f-body); font-size: 9px; font-weight: 500;
+  fill: #D7E0DB; font-family: var(--f-body); font-size: var(--graph-label-size, 9px); font-weight: 600;
   text-anchor: middle; pointer-events: none; user-select: none;
+  paint-order: stroke; stroke: rgba(9, 15, 13, .75); stroke-width: 3px; stroke-linejoin: round;
 }
 .graph-code {
-  fill: #7C8C84; font-family: var(--f-mono); font-size: 8px;
+  fill: #93A49B; font-family: var(--f-mono); font-size: var(--graph-code-size, 8px);
   text-anchor: middle; pointer-events: none; user-select: none;
 }
 
@@ -124,6 +128,17 @@
 }
 @media (max-width: 640px) {
   .graph-legend-depth { border-left: none; padding-left: 0; flex-basis: 100%; }
+}
+
+/* A 16:10 box on a 390px phone is only 244px tall — four layers of roots plus
+   the legend cannot share that. Give the graph a taller frame on small screens
+   so labels and the legend stop landing on top of the nodes. */
+@media (max-width: 560px) {
+  .graph-wrap { aspect-ratio: 1 / 1.15; }
+  .graph-wrap.compact { aspect-ratio: 1 / 0.9; }
+  .graph-legend { font-size: 10px; gap: 8px; padding: 6px 9px; left: 8px; bottom: 8px; }
+  .graph-controls { right: 8px; bottom: 8px; }
+  .graph-controls button { width: 28px; height: 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

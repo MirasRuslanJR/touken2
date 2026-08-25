@@ -51,6 +51,7 @@ function navFor(role) {
     ['#/module/math', 'graph', t('nav_modules')],
     ['#/xray/last', 'bolt', t('nav_xray')],
     ['#/tutor', 'tutor', t('nav_tutor')],
+    ['#/feynman', 'feynman', t('nav_feynman')],
     ['#/scan', 'scan', t('nav_scan')],
     ['#/settings', 'settings', t('nav_settings')],
   ];
@@ -80,6 +81,7 @@ function boot() {
   registerRoute('/task/:nodeId', renderTask);
   registerRoute('/tutor', renderTutor);
   registerRoute('/tutor/:nodeId', renderTutor);
+  registerRoute('/feynman', renderFeynman);
   registerRoute('/feynman/:nodeId', renderFeynman);
   registerRoute('/scan', renderScan);
   registerRoute('/teacher', renderTeacher);

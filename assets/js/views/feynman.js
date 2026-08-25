@@ -1,11 +1,60 @@
 // views/feynman.js — killer feature #5, режим Фейнмана: the student explains the
 // topic out loud, Gemini compares the transcript against the topic's key ideas.
-import { getNode } from '../db.js';
+import { getNode, listSubjects, listNodes, getMastery } from '../db.js';
 import { titleFor, t, localeTag } from '../i18n.js';
 import { icon, aiBadge } from '../ui.js';
+import { rankWeakSpots } from '../mastery.js';
+import { store } from '../store.js';
 
-export async function renderFeynman(root, { nodeId }) {
+/**
+ * Entered from the sidebar there is no topic yet — the feature is per-topic, so
+ * ask which one first. Weak spots come first: explaining a topic you already
+ * know proves nothing, the point is to find out where the understanding is thin.
+ */
+async function renderPicker(root) {
+  root.innerHTML = `<div class="skel" style="height:50vh"></div>`;
+  const user = store.get().user;
+  const subjects = await listSubjects();
+  const perSubject = await Promise.all(subjects.map(s => listNodes(s.id)));
+  const nodes = perSubject.flat();
+  const nodesById = new Map(nodes.map(n => [n.id, n]));
+  const mastery = await getMastery(user.id).catch(() => []);
+  const weak = rankWeakSpots(mastery.filter(m => nodesById.has(m.node_id)), nodesById).slice(0, 6);
+  const weakIds = new Set(weak.map(w => w.node_id));
+
+  const card = (id, title, meta, status) => `
+    <a href="#/feynman/${id}" class="card card-pad" style="text-decoration:none;display:flex;align-items:center;gap:12px">
+      <span class="mastery-dot ${status || 'unknown'}"></span>
+      <span style="flex:1;min-width:0">
+        <strong style="color:var(--ink);display:block">${title}</strong>
+        <span style="font-size:13px;color:var(--ink-soft)">${meta}</span>
+      </span>
+      ${icon('arrowRight')}
+    </a>`;
+
+  root.innerHTML = `
+    <div class="topbar"><div>
+      <div class="eyebrow">${t('feynman_mode')}</div>
+      <h1>${t('feynman_pick_title')}</h1>
+    </div></div>
+    <p style="color:var(--ink-soft);max-width:60ch;margin-bottom:22px">${t('feynman_pick_sub')}</p>
+
+    ${weak.length ? `
+      <h3 style="margin-bottom:12px">${t('feynman_pick_weak')}</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px">
+        ${weak.map(w => card(w.node_id, titleFor(w.node), `${w.score}% ${t('mod_mastered')}`, w.status)).join('')}
+      </div>` : ''}
+
+    <h3 style="margin-bottom:12px">${t('feynman_pick_all')}</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${nodes.filter(n => !weakIds.has(n.id)).map(n => card(n.id, titleFor(n), n.code, 'unknown')).join('')}
+    </div>`;
+}
+
+export async function renderFeynman(root, { nodeId } = {}) {
+  if (!nodeId) return renderPicker(root);
   const node = await getNode(nodeId);
+  if (!node) return renderPicker(root);
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognizing = false;
   let transcript = '';

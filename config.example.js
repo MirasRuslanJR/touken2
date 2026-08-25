@@ -13,3 +13,4 @@ export const CONFIG = {
   AI_FALLBACK_KEY: '',
   AI_FALLBACK_MODEL: 'openai/gpt-oss-120b',
 };
+//скопируйте это и переменуйте в config.js, затем заполните значения из .env

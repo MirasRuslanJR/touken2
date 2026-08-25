@@ -114,7 +114,18 @@ textarea.input { height: auto; min-height: 96px; padding: 12px 14px; resize: ver
 
 /* ---- Modal ---- */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(12, 21, 18, .45); z-index: 800; display: flex; align-items: center; justify-content: center; padding: 24px; }
-.modal { background: var(--paper-lift); border-radius: var(--r-card); max-width: 480px; width: 100%; padding: 24px; box-shadow: var(--shadow-2); }
+/* The risk radar returns one card per student, so this box has to survive a
+   list longer than the screen. Without a height cap it grew past both edges of
+   a phone viewport and took its own close button off-screen with it. */
+.modal {
+  background: var(--paper-lift); border-radius: var(--r-card);
+  max-width: 480px; width: 100%; padding: 24px; box-shadow: var(--shadow-2);
+  max-height: calc(100dvh - 48px); overflow-y: auto; overscroll-behavior: contain;
+}
+@media (max-width: 560px) {
+  .modal-backdrop { padding: 12px; align-items: flex-end; }
+  .modal { padding: 18px 16px; max-height: calc(100dvh - 24px); border-radius: 16px; }
+}
 
 /* ---- Empty state ---- */
 .empty { text-align: center; padding: 48px 24px; color: var(--ink-soft); }
